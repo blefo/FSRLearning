@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import itertools
 from os import stat
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -35,16 +36,10 @@ class State:
             This method enables to train only once a model and get the accuracy
         '''
         #Get possible neighboors of the current state
-        neigh_state_depth: int = self.number[0] + 1
-        #if feature_structure.get(neigh_state_depth) is not None:
-            #state_neigh: list = [neigh for neigh in feature_structure[neigh_state_depth] if np.all([i in neigh.description for i in self.description])]
-        #else:
-        state_neigh: list = [State([len(self.description) + 1, 0], self.description + [i], 0) for i in range(len(aorf_histo[0])) if not np.any([i == j for j in self.description])]
-
-        
+        state_neigh = self.get_neighboors(feature_structure, [i for i in range(len(aorf_histo[0]))])
 
         #Random state selection
-        select_random_element: int = None if not state_neigh else np.random.randint(len(state_neigh))
+        select_random_element: int = np.random.randint(len(state_neigh))
         next_state: State = None if not state_neigh else state_neigh[select_random_element]
 
         #Get current state object
@@ -66,36 +61,15 @@ class State:
                 return Action(current_state, next_state), next_state
             else:
             #Get AOR of a variable and select the max AOR associated to a variable
-                added_feature = [rew.description[-1] for rew in state_neigh]
-                get_max_aorf: int = np.argmax([aorf_histo[1][neigh] for neigh in added_feature])
-                get_best_action: int = aorf_histo[0][get_max_aorf]
+                get_aorf_neigh: list = [list(set(feat_added.description)-set(self.description)) for feat_added in state_neigh]
+                get_aorf_max: list = np.argmax([aorf_histo[1][feat] for feat in get_aorf_neigh])
 
-                get_next_state: State = [neigh for neigh in state_neigh if neigh.description[-1] == get_best_action][0]
+                next_state: State = [st_max for st_max in state_neigh if list(set(st_max.description)-set(self.description)) == get_aorf_neigh[get_aorf_max]][0]
 
                 #We update the number of visit
                 self.nb_visited += 1
 
-                return Action(current_state, get_next_state), get_next_state
-                '''added_feature = [rew.description[-1] for rew in state_neigh] if len(state_neigh) > 1 else state_neigh[0].description[-1]
-
-                if type(added_feature) is list:
-                    #There are multiple discovered neighboors
-                    get_max_aorf: int = np.argmax([aorf_histo[1][neigh] for neigh in added_feature])
-                    get_best_action: int = aorf_histo[0][get_max_aorf]
-
-                    get_next_state: State = [neigh for neigh in state_neigh if neigh.description[-1] == get_best_action][0]
-
-                    #We update the number of visit
-                    self.nb_visited += 1
-
-                    return Action(current_state, get_next_state), get_next_state
-                else:
-                    get_next_state: State = [neigh for neigh in state_neigh if neigh.description[-1] == added_feature][0]
-
-                    #We update the number of visit
-                    self.nb_visited += 1
-
-                    return Action(current_state, get_next_state), get_next_state'''
+                return Action(current_state, next_state), next_state
             
 
     def update_v_value(self, alpha: float, gamma: float, v_value_next_state: float):
@@ -103,6 +77,42 @@ class State:
             Update the v_value of a state
         '''
         self.v_value += alpha * (self.reward + gamma * v_value_next_state - self.v_value)
+
+    def get_neighboors(self, feature_structure: dict, feature_list: int) -> list:
+        '''
+            Returns the list of the neighboors of the current state
+        '''
+        graph_depth: int = self.number[0]
+
+        #Check if the graph has a layer at this depth
+        if graph_depth in feature_structure:
+            #There is a graph_depth n° layer
+            all_possible_states: list = [
+                State(
+                    [graph_depth+1, len(feature_structure[graph_depth])],
+                    list(combin),
+                    0
+                )
+            for combin in itertools.combinations(feature_list, graph_depth + 1) if np.all([j in combin for j in self.description])]
+            
+            if graph_depth <= 11:
+                existing_states: list = [neigh for neigh in feature_structure[graph_depth + 1] if np.all([j in neigh.description for j in self.description])]
+            else:
+                existing_states: list = []
+
+            final_neigh: list = all_possible_states + existing_states
+        else:
+            final_neigh: list = [
+                State(
+                    [graph_depth+1, 0],
+                    list(combin),
+                    0
+                )
+            for combin in itertools.combinations(feature_list, graph_depth + 1) if np.all([j in combin for j in self.description])]
+        
+        return final_neigh
+
+            
 
     def is_final(self, nb_of_features: int) -> bool:
         '''
@@ -142,15 +152,15 @@ class Action:
         '''
 
         #Get historic
-        chosen_feature: int = self.state_next.description[-1]
-        aorf_nb_played_old: int = aor_historic[0][int(chosen_feature)]
-        aorf_value_old: int = aor_historic[1][int(chosen_feature)]
+        chosen_feature: int = list(set(self.state_next.description) - set(self.state_t.description))
+        aorf_nb_played_old: int = aor_historic[0][int(chosen_feature[0])]
+        aorf_value_old: int = aor_historic[1][int(chosen_feature[0])]
 
         #Update the aor for the selection of f
-        aor_historic[0][int(chosen_feature)] += 1  
+        aor_historic[0][int(chosen_feature[0])] += 1  
 
         #Update the aor for the selection of f
-        aor_historic[1][int(chosen_feature)] = ((aorf_nb_played_old - 1) * aorf_value_old + self.state_t.v_value) / (aorf_nb_played_old + 1)
+        aor_historic[1][int(chosen_feature[0])] = ((aorf_nb_played_old - 1) * aorf_value_old + self.state_t.v_value) / (aorf_nb_played_old + 1)
 
         return aor_historic          
 
@@ -235,7 +245,24 @@ class FeatureSelectionProcessV2:
 
         return [index, nb_played, values, np.argsort(self.aor[1])]
 
+    def get_optimal_state_value(self) -> State:
+        '''
+            Returns the optimal state
+        '''
 
+        optimal_state: State = State([0, 0], [], 0)
+
+        #Dictionary browsing by key
+        for key in self.feature_structure.keys():
+            if key == 0:
+                pass
+            else:
+                for value in self.feature_structure[key]:
+                    if value.v_value > optimal_state.v_value:
+                        optimal_state = value
+
+        return optimal_state
+    
 
 
     
