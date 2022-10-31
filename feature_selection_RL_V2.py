@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from os import stat
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
@@ -33,47 +34,68 @@ class State:
 
             This method enables to train only once a model and get the accuracy
         '''
-        #Get possible neighbors of the current state
+        #Get possible neighboors of the current state
         neigh_state_depth: int = self.number[0] + 1
-        if feature_structure.get(neigh_state_depth) is not None:
-            state_neigh: list = [neigh for neigh in feature_structure[neigh_state_depth] if np.array_equal(self.description, neigh.description[:-1])]
-        else:
-            state_neigh: list = []
+        #if feature_structure.get(neigh_state_depth) is not None:
+            #state_neigh: list = [neigh for neigh in feature_structure[neigh_state_depth] if np.all([i in neigh.description for i in self.description])]
+        #else:
+        state_neigh: list = [State([len(self.description) + 1, 0], self.description + [i], 0) for i in range(len(aorf_histo[0])) if not np.any([i == j for j in self.description])]
+
+        
 
         #Random state selection
         select_random_element: int = None if not state_neigh else np.random.randint(len(state_neigh))
         next_state: State = None if not state_neigh else state_neigh[select_random_element]
 
         #Get current state object
-        current_state: State = feature_structure[self.number[0]][self.number[1]]
+        current_state: State = self
 
         if self.nb_visited == 0 or next_state is None:
             #State never visited ==> we chose a random action
-            possible_neigh: list = [np.append(self.description, i) for i in range(aorf_histo[0].shape[0]) if i not in self.description]
+            select_random_element: int = np.random.randint(len(state_neigh))
 
-            select_random_element: int = np.random.randint(len(possible_neigh))
-
-            next_state: State = State([self.number[0] + 1, 0], possible_neigh[select_random_element], 0, 0)
+            next_state: State = state_neigh[select_random_element]
 
             #We update the number of visit
             self.nb_visited += 1
 
             return Action(current_state, next_state), next_state
         else:
-            '''
             e_greedy_choice: bool = bool(np.random.binomial(1, eps))
             if e_greedy_choice:
                 return Action(current_state, next_state), next_state
-            else:'''
+            else:
             #Get AOR of a variable and select the max AOR associated to a variable
-            reward_by_state: list = [aorf_histo[1][rew.description[-1]] for rew in state_neigh if np.array_equal(self.description, rew.description[-1])]
-            max_reward_index: int = np.argmax(reward_by_state)
+                added_feature = [rew.description[-1] for rew in state_neigh]
+                get_max_aorf: int = np.argmax([aorf_histo[1][neigh] for neigh in added_feature])
+                get_best_action: int = aorf_histo[0][get_max_aorf]
 
-            #We update the number of visit
-            self.nb_visited += 1
+                get_next_state: State = [neigh for neigh in state_neigh if neigh.description[-1] == get_best_action][0]
 
-            return Action(current_state, state_neigh[max_reward_index]), current_state.description + [state_neigh[max_reward_index]]                
+                #We update the number of visit
+                self.nb_visited += 1
 
+                return Action(current_state, get_next_state), get_next_state
+                '''added_feature = [rew.description[-1] for rew in state_neigh] if len(state_neigh) > 1 else state_neigh[0].description[-1]
+
+                if type(added_feature) is list:
+                    #There are multiple discovered neighboors
+                    get_max_aorf: int = np.argmax([aorf_histo[1][neigh] for neigh in added_feature])
+                    get_best_action: int = aorf_histo[0][get_max_aorf]
+
+                    get_next_state: State = [neigh for neigh in state_neigh if neigh.description[-1] == get_best_action][0]
+
+                    #We update the number of visit
+                    self.nb_visited += 1
+
+                    return Action(current_state, get_next_state), get_next_state
+                else:
+                    get_next_state: State = [neigh for neigh in state_neigh if neigh.description[-1] == added_feature][0]
+
+                    #We update the number of visit
+                    self.nb_visited += 1
+
+                    return Action(current_state, get_next_state), get_next_state'''
             
 
     def update_v_value(self, alpha: float, gamma: float, v_value_next_state: float):
@@ -174,7 +196,11 @@ class FeatureSelectionProcessV2:
             
             Returns the empty initial state
         '''
-        return State([0, 0], [], 0, 0)
+        depth = 0
+        if not bool(self.feature_structure):
+            return State([0, 0], [], 0, 0)
+        else:
+            return self.feature_structure[depth][0]
 
     def add_to_historic(self, visited_state: State):
         '''
