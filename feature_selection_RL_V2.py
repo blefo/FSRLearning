@@ -45,7 +45,10 @@ class State:
         #Get current state object
         current_state: State = self
 
-        if self.nb_visited == 0 or next_state is None:
+        #We init the discovering rate
+        e_greedy_choice: bool = bool(np.random.binomial(1, eps))
+
+        if self.v_value == 0 or next_state is None or e_greedy_choice:
             #State never visited ==> we chose a random action
             select_random_element: int = np.random.randint(len(state_neigh))
 
@@ -56,20 +59,20 @@ class State:
 
             return Action(current_state, next_state), next_state
         else:
-            e_greedy_choice: bool = bool(np.random.binomial(1, eps))
-            if e_greedy_choice:
-                return Action(current_state, next_state), next_state
-            else:
             #Get AOR of a variable and select the max AOR associated to a variable
-                get_aorf_neigh: list = [list(set(feat_added.description)-set(self.description)) for feat_added in state_neigh]
+            if self.number[0] <= 11:
+                get_existing_neigh: list = [neigh for neigh in feature_structure[self.number[0] + 1] if np.all([j in neigh.description for j in self.description])]
+
+                get_aorf_neigh: list = [list(set(feat_added.description)-set(self.description)) for feat_added in get_existing_neigh]
                 get_aorf_max: list = np.argmax([aorf_histo[1][feat] for feat in get_aorf_neigh])
 
-                next_state: State = [st_max for st_max in state_neigh if list(set(st_max.description)-set(self.description)) == get_aorf_neigh[get_aorf_max]][0]
+                next_state: State = [st_max for st_max in get_existing_neigh if list(set(st_max.description)-set(self.description)) == get_aorf_neigh[get_aorf_max]][0]
+            else:
+                next_state: State = State([13, 0], [i for i in range(len(aorf_histo[0]))], 0)
+            #We update the number of visit
+            self.nb_visited += 1
 
-                #We update the number of visit
-                self.nb_visited += 1
-
-                return Action(current_state, next_state), next_state
+            return Action(current_state, next_state), next_state
             
 
     def update_v_value(self, alpha: float, gamma: float, v_value_next_state: float):
