@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import itertools
-from os import stat
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
@@ -21,11 +20,16 @@ class State:
         '''
         #Train classifier with state_t variable and state t+1 variables and compute the diff of the accuracy
         if self.reward == 0:
-            clf = RandomForestClassifier(max_depth=2)
-            clf.fit(X_train, y_train)
-            accuracy: float = clf.score(X_test, y_test)
-            self.reward = accuracy
-            return accuracy
+            #We smooth the average reward
+            accuracy_smt = 0
+            for i in range(5):
+                clf = RandomForestClassifier(max_depth=2)
+                clf.fit(X_train, y_train)
+                accuracy: float = clf.score(X_test, y_test)
+                accuracy_smt += accuracy
+
+            self.reward = accuracy_smt
+            return accuracy_smt
         else:
             return self.reward
 
