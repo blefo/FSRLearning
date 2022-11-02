@@ -81,7 +81,7 @@ class State:
 
             return Action(current_state, next_state), next_state
 
-    def get_neighboors(self, feature_structure: dict, feature_list: int) -> list:
+    def get_neighboors(self, feature_structure: dict, feature_list: list) -> list:
         '''
             Returns the list of the neighboors of the current state
         '''
@@ -97,6 +97,11 @@ class State:
                     0
                 )
             for combin in itertools.combinations(feature_list, graph_depth + 1) if np.all([j in combin for j in self.description])]
+
+            '''for neigh in feature_structure[graph_depth + 1]:
+                if np.all([j in neigh.description for j in self.description]):
+                    pick_random: list = np.random.choice([i for i in feature_list if i not in self.description])
+                    return self.description + pick_random'''
             
             if graph_depth <= 11:
                 existing_states: list = [neigh for neigh in feature_structure[graph_depth + 1] if np.all([j in neigh.description for j in self.description])]

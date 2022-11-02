@@ -65,9 +65,10 @@ class Feature_Selector_RL:
             #print(f'Current state selection {it} ---------')
             current_state = feature_selection_process.start_from_empty_set()
             
-            worsen_state: bool = False
+            not_worsen_value: bool = True
+            previous_state_v_value, nb_iter_after_actu = 0, 0
 
-            while current_state.number[0] <= 13:
+            while current_state.number[0] <= 13 or not_worsen_value:
 
                 #We get the reward of the state
                 if current_state.reward == 0:
@@ -76,6 +77,8 @@ class Feature_Selector_RL:
                 #We chose the next state
                 return_next_action_state = current_state.select_action(feature_selection_process.feature_structure, feature_selection_process.eps, feature_selection_process.aor)
                 next_state, next_action = return_next_action_state[1], return_next_action_state[0]
+
+                previous_state_v_value = next_state.v_value
 
                 if current_state.v_value == 0:
                     self.explored += 1
@@ -99,7 +102,12 @@ class Feature_Selector_RL:
                 #Add the state to the research tree
                 feature_selection_process.add_to_historic(current_state)
 
+                if current_state.v_value < previous_state_v_value and nb_iter_after_actu == 1:
+                    print('Stop because worsen')
+                    not_worsen_value = False
+
                 current_state = next_state
+                nb_iter_after_actu += 1
                 
             self.nb_explored.append(self.explored)
             self.nb_not_explored.append(self.not_explored)
@@ -154,6 +162,9 @@ class Feature_Selector_RL:
         print(f'Average benchmark accuracy : {np.mean(avg_benchmark_acccuracy)}, rl accuracy : {np.mean(avg_rl_acccuracy)}')
 
         index_variable: list = [i for i in range(len(avg_benchmark_acccuracy))]
+
+        avg_benchmark_acccuracy.reverse()
+        avg_rl_acccuracy.reverse()
 
         plt.plot(index_variable, avg_benchmark_acccuracy, label='Benchmark acccuracy')
         plt.plot(index_variable, avg_rl_acccuracy, label='RL accuracy')
