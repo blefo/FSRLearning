@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from operator import index
 
 #Maths and others
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import itertools
 
 #Other class
@@ -56,11 +58,15 @@ class Feature_Selector_RL:
 
         print('---------- The process has been successfully init ----------')
 
-        for it in range(self.nb_iter):
+        print('---------- Training ----------')
 
-            print(f'Current state selection {it} ---------')
+        for it in tqdm(range(self.nb_iter)):
+
+            #print(f'Current state selection {it} ---------')
             current_state = feature_selection_process.start_from_empty_set()
             
+            worsen_state: bool = False
+
             while current_state.number[0] <= 13:
 
                 #We get the reward of the state
@@ -71,18 +77,21 @@ class Feature_Selector_RL:
                 return_next_action_state = current_state.select_action(feature_selection_process.feature_structure, feature_selection_process.eps, feature_selection_process.aor)
                 next_state, next_action = return_next_action_state[1], return_next_action_state[0]
 
-                current_state.nb_visited += 1
-
                 if current_state.v_value == 0:
                     self.explored += 1
                 else:
+                    #We add the state as an already explored state
                     self.not_explored += 1
 
                 if len(next_action.state_next.description) >= 14:
                     break
 
+                #We get the reward of the state
+                if next_state.reward == 0:
+                    next_state.get_reward(X_train, y_train, X_test, y_test)
+
                 #We update the v_value of the state
-                current_state.update_v_value(feature_selection_process.alpha, feature_selection_process.gamma, next_state.v_value)
+                current_state.update_v_value(feature_selection_process.alpha, feature_selection_process.gamma, next_state)
 
                 #We update the aor table
                 feature_selection_process.aor = next_action.get_aorf(feature_selection_process.aor)
@@ -118,6 +127,7 @@ class Feature_Selector_RL:
         print('---------- Data Processing ----------')
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
+        print('---------- Score ----------')
         for i in range(1, self.feature_number):
             #From RL
             clf = RandomForestClassifier(max_depth=4)
@@ -138,16 +148,37 @@ class Feature_Selector_RL:
             avg_benchmark_acccuracy.append(sele_acc)
             avg_rl_acccuracy.append(accuracy)
 
+            print(f'Set of variables : Benchmark : {X_train.columns[selector.support_].tolist()} and RL : {results[-1][i:]}')
             print(f'Benchmark accuracy : {sele_acc}, RL accuracy : {accuracy} with {len(results[-1]) - i} variables {is_better_list}')
         
         print(f'Average benchmark accuracy : {np.mean(avg_benchmark_acccuracy)}, rl accuracy : {np.mean(avg_rl_acccuracy)}')
 
-        plt.plot([i for i in range(len(avg_benchmark_acccuracy))], avg_benchmark_acccuracy, label='Benchmark acccuracy')
-        plt.plot([i for i in range(len(avg_rl_acccuracy))], avg_rl_acccuracy, label='RL accuracy')
-        plt.xlabel('Number of iterations')
+        index_variable: list = [i for i in range(len(avg_benchmark_acccuracy))]
+
+        plt.plot(index_variable, avg_benchmark_acccuracy, label='Benchmark acccuracy')
+        plt.plot(index_variable, avg_rl_acccuracy, label='RL accuracy')
+        plt.xlabel('Number of variables')
         plt.ylabel('Accuracy')
         plt.legend(loc="lower right")
 
         plt.show()
 
         return is_better_list
+
+    def get_best_state(self):
+        '''
+            Returns the optimal state
+        '''
+
+        optimal_state: State = State([0, 0], [], 0)
+
+        #Dictionary browsing by key
+        for key in self.feature_structure.keys():
+            if key == 0:
+                pass
+            else:
+                for value in self.feature_structure[key]:
+                    if value.v_value > optimal_state.v_value:
+                        optimal_state = value
+
+        return optimal_state

@@ -20,16 +20,19 @@ class State:
         '''
         #Train classifier with state_t variable and state t+1 variables and compute the diff of the accuracy
         if self.reward == 0:
-            #We smooth the average reward
-            accuracy_smt = 0
-            for i in range(5):
-                clf = RandomForestClassifier(max_depth=2)
-                clf.fit(X_train, y_train)
-                accuracy: float = clf.score(X_test, y_test)
-                accuracy_smt += accuracy
+            if self.description == []:
+                return 0
+            else:
+                #We smooth the average reward
+                accuracy_smt = 0
+                for i in range(5):
+                    clf = RandomForestClassifier(max_depth=4)
+                    clf.fit(X_train[self.description], y_train)
+                    accuracy: float = clf.score(X_test[self.description], y_test)
+                    accuracy_smt += accuracy
 
-            self.reward = accuracy_smt
-            return accuracy_smt
+                self.reward = accuracy_smt/5
+                return accuracy_smt/5
         else:
             return self.reward
 
@@ -77,13 +80,6 @@ class State:
             self.nb_visited += 1
 
             return Action(current_state, next_state), next_state
-            
-
-    def update_v_value(self, alpha: float, gamma: float, v_value_next_state: float):
-        '''
-            Update the v_value of a state
-        '''
-        self.v_value += alpha * (self.reward + gamma * v_value_next_state - self.v_value)
 
     def get_neighboors(self, feature_structure: dict, feature_list: int) -> list:
         '''
@@ -119,7 +115,11 @@ class State:
         
         return final_neigh
 
-            
+    def update_v_value(self, alpha: float, gamma: float, next_state) -> float:
+        '''
+            Update the v_value of a state
+        '''
+        self.v_value += alpha * ((next_state.reward - self.reward) + gamma * next_state.v_value - self.v_value)   
 
     def is_final(self, nb_of_features: int) -> bool:
         '''
@@ -138,7 +138,7 @@ class State:
 
             Returns True if yes else returns False
         '''
-        if np.array_equal(self.description, compared_state.description) and np.array_equal(self.number, compared_state.number):
+        if np.array_equal(self.description, compared_state.description):
             return True
         else:
             return False
@@ -169,7 +169,7 @@ class Action:
         #Update the aor for the selection of f
         aor_historic[1][int(chosen_feature[0])] = ((aorf_nb_played_old - 1) * aorf_value_old + self.state_t.v_value) / (aorf_nb_played_old + 1)
 
-        return aor_historic          
+        return aor_historic       
 
 @dataclass
 class FeatureSelectionProcessV2:
@@ -215,7 +215,7 @@ class FeatureSelectionProcessV2:
         '''
         depth = 0
         if not bool(self.feature_structure):
-            return State([0, 0], [], 0, 0)
+            return State([0, 0], [], 0, 0.0000)
         else:
             return self.feature_structure[depth][0]
 
