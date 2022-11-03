@@ -8,7 +8,7 @@ from tqdm import tqdm
 import itertools
 
 #Other class
-from .feature_selection_RL_V3 import *
+from feature_selection_RL_V3 import *
 
 #ML Sklearn library
 from sklearn.feature_selection import RFE
@@ -191,15 +191,18 @@ class Feature_Selector_RL:
 
         return is_better_list
 
-    def get_best_state(self) -> tuple([float, State]):
+    def get_best_state(self) -> tuple([[float, State], [float, State]]):
         '''
             Returns the optimal state
 
             Returns : Tuple(Best_rewarded_state, Best_feature_set)
         '''
 
+        best_v_value: float = 0
+        best_state_v_value: State = None
+
         best_reward: float = 0
-        best_state: State = None
+        best_state_reward: State = None
 
         #Dictionary browsing by key
         for key in self.feature_structure:
@@ -209,6 +212,11 @@ class Feature_Selector_RL:
                 for value in self.feature_structure[key]:
                     if value.reward > best_reward:
                         best_reward = value.reward
-                        best_state = value
+                        best_state_reward = value
+                    if value.v_value > best_v_value:
+                        best_v_value = value.v_value
+                        best_state_v_value = value
+                    
 
-        return best_reward, best_state
+
+        return [best_state_reward, best_reward], [best_state_v_value, best_v_value]
