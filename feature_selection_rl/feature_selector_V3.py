@@ -29,6 +29,12 @@ class Feature_Selector_RL:
                 AOR value per feature: list,
                 Sorted list of feature from the less to the most important for the model: list
             ]
+
+        Parameters explaination:
+            [
+                Alpha [0; 1] : rate of updates
+                Gamma [0; 1] : discount factor to moderate the effect of observing the next state (0=shortsighted; 1=farsighted)
+            ]
     '''
 
     feature_number: int
@@ -38,13 +44,13 @@ class Feature_Selector_RL:
     aor: list = None
     eps: float = .1
     alpha: float = .5
-    gamma: float = .99
+    gamma: float = .70
     nb_iter: int = 100
     explored: int = 0
     not_explored: int = 0
 
 
-    def fit_transform(self, X, y) -> list:
+    def fit_transform(self, X, y) -> tuple([list, float]):
 
         #We init the process
         print('---------- AOR init ----------')
@@ -124,7 +130,7 @@ class Feature_Selector_RL:
         results = feature_selection_process.get_final_aor_sorted()
 
         print('---------- Results ----------')
-        return results
+        return results, self.nb_explored[-1] + self.nb_not_explored[-1]
 
     def get_plot_ratio_exploration(self):
 
@@ -185,20 +191,24 @@ class Feature_Selector_RL:
 
         return is_better_list
 
-    def get_best_state(self):
+    def get_best_state(self) -> tuple([float, State]):
         '''
             Returns the optimal state
+
+            Returns : Tuple(Best_rewarded_state, Best_feature_set)
         '''
 
-        optimal_state: State = State([0, 0], [], 0)
+        best_reward: float = 0
+        best_state: State = None
 
         #Dictionary browsing by key
-        for key in self.feature_structure.keys():
+        for key in self.feature_structure:
             if key == 0:
                 pass
             else:
                 for value in self.feature_structure[key]:
-                    if value.v_value > optimal_state.v_value:
-                        optimal_state = value
+                    if value.reward > best_reward:
+                        best_reward = value.reward
+                        best_state = value
 
-        return optimal_state
+        return best_reward, best_state

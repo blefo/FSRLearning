@@ -233,7 +233,8 @@ class FeatureSelectionProcessV3:
         state_depth: int = visited_state.number[0]
 
         #We increment the number of visit of the current state
-        visited_state.nb_visited += 1
+        if visited_state.description != []:
+            visited_state.nb_visited += 1
 
         if state_depth in self.feature_structure:
             #If there is a key associated to the state depth
@@ -275,25 +276,6 @@ class FeatureSelectionProcessV3:
         index, values = zip(*sorted(zip(index, values)))
 
         return [index, nb_played, values, np.argsort(self.aor[1])]
-
-    def get_optimal_state_value(self) -> State:
-        '''
-            Returns the optimal state
-        '''
-
-        optimal_state: State = State([0, 0], [], 0)
-
-        #Dictionary browsing by key
-        for key in self.feature_structure.keys():
-            if key == 0:
-                pass
-            else:
-                for value in self.feature_structure[key]:
-                    if value.v_value > optimal_state.v_value:
-                        optimal_state = value
-
-        return optimal_state
-    
 
 
     
