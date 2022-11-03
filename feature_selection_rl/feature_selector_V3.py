@@ -60,53 +60,63 @@ class Feature_Selector_RL:
 
         print('---------- Training ----------')
 
+        #We iterate it times on the graph to get informations about each feature
         for it in tqdm(range(self.nb_iter)):
-
-            #print(f'Current state selection {it} ---------')
-            current_state, is_init = feature_selection_process.start_from_empty_set()[0], feature_selection_process.start_from_empty_set()[1]
             
-            not_worsen_value: bool = True
-            previous_state_v_value, nb_iter_after_actu = 0, 0
+            #We start from the empty state
+            init = feature_selection_process.start_from_empty_set()
+            current_state, is_empty_state = init[0], init[1]
 
-            while current_state.number[0] <= 13 or not_worsen_value:
+            #Informations about the current state
+            current_state_depth: int = current_state.number[0]
 
-                #We get the reward of the state
-                if current_state.reward == 0:
-                    current_state.get_reward(X_train, y_train, X_test, y_test)
+            #We init the worsen state stop condition
+            not_stop_worsen: bool = True
+            previous_v_value, nb_worsen = current_state.v_value, 0
 
-                #We chose the next state
-                return_next_action_state = current_state.select_action(feature_selection_process.feature_structure, feature_selection_process.eps, feature_selection_process.aor)
-                next_state, next_action, random_or_max = return_next_action_state[1], return_next_action_state[0], return_next_action_state[2]
+            while current_state_depth <= 12 or not_stop_worsen:
 
-                previous_state_v_value = next_state.v_value
+                #Worsen condition update
+                previous_v_value = current_state.v_value
 
-                if random_or_max:
+                current_state.get_reward(X_train, y_train, X_test, y_test)
+
+                #We select the next state
+                next_step = current_state.select_action(feature_selection_process.feature_structure, feature_selection_process.eps, feature_selection_process.aor)
+                next_action, next_state = next_step[0], next_step[1]
+
+                #We count the explored state
+                if next_state.nb_visited == 0:
                     self.explored += 1
                 else:
-                    #We add the state as an already explored state
                     self.not_explored += 1
 
-                if len(next_action.state_next.description) >= 14:
-                    break
+                #We evaluate the reward of the next_state
+                next_state.get_reward(X_train, y_train, X_test, y_test)
 
-                #We get the reward of the state
-                if next_state.reward == 0:
-                    next_state.get_reward(X_train, y_train, X_test, y_test)
+                #We update the v_value of the current_state
+                current_state.update_v_value(.99, .99, next_state)
 
-                #We update the v_value of the state
-                current_state.update_v_value(feature_selection_process.alpha, feature_selection_process.gamma, next_state)
+                #We update the worsen stop condition
+                #We set the variables for the worsen v_value state stop condition
+                if previous_v_value > current_state.v_value:
+                    not_stop_worsen = False
 
                 #We update the aor table
                 feature_selection_process.aor = next_action.get_aorf(feature_selection_process.aor)
 
-                #Add the state to the research tree
+                #print(f'current state after {current_state}')
+
+                #We add these information to the history (the graph)
                 feature_selection_process.add_to_historic(current_state)
 
-                if current_state.v_value < previous_state_v_value and nb_iter_after_actu == 1:
-                    not_worsen_value = False
-
+                #We change the current_state with the new one
                 current_state = next_state
-                nb_iter_after_actu += 1
+                
+                #We update the current_state's depth
+                current_state_depth = current_state.number[0]
+
+            #print(f'{feature_selection_process.feature_structure}')
                 
             self.nb_explored.append(self.explored)
             self.nb_not_explored.append(self.not_explored)
