@@ -16,7 +16,7 @@ class State:
     reward: float = 0
     nb_visited: int = 0
 
-    def get_reward(self, X_train, y_train, X_test, y_test) -> float:
+    def get_reward(self, X_train, y_train, X_test, y_test, clf) -> float:
         '''
             Return the reward of a set of variable
         '''
@@ -27,19 +27,18 @@ class State:
                 return 0
             else:
                 #We smooth the average reward
-                accuracy_smt = 0
-                for i in range(5):
-                    clf = RandomForestClassifier(max_depth=4)
-                    clf.fit(X_train[self.description], y_train)
-                    accuracy: float = clf.score(X_test[self.description], y_test)
-                    accuracy_smt += accuracy
+                #accuracy_smt = 0
+                #for i in range(5):
+                clf.fit(X_train[self.description], y_train)
+                accuracy: float = clf.score(X_test[self.description], y_test)
+                    #accuracy_smt += accuracy
 
-                self.reward = accuracy_smt/5
+                self.reward =accuracy
                 return self.reward
         else:
             return self.reward
 
-    def select_action(self, feature_structure: dict, eps: float, aorf_histo: list):
+    def select_action(self, feature_structure: dict, eps: float, aorf_histo: list, is_empty_state: bool):
         '''
             Returns an action object
 
@@ -53,47 +52,41 @@ class State:
 
         if self.nb_visited == 0 or eps_step:
             has_explored_node: list = [neigh for neigh in get_neigh if neigh.v_value != 0]
-            if not has_explored_node:
+            if not has_explored_node or eps_step:
                 #We select not explored state randomly
                 next_state: State = np.random.choice(get_neigh)
 
-                return Action(self, next_state), next_state
+                return Action(self, next_state), next_state, True
             else:
-                #We select a state where the possible next feature has the maximum AORf
-                possible_feature: list = [list(set(neigh.description) - set(self.description))[0] for neigh in get_neigh]
-            
-                #We determine the max AORf
-                feature_max_aorf: list = np.argmax([aorf_histo[1][feat] for feat in possible_feature])
+                #Get argmax next state
+                next_state = self.get_argmax(get_neigh, aorf_histo)
 
-                #We get the max feature
-                next_feature: int = possible_feature[feature_max_aorf]
-
-                #We get the next state
-                next_state: State = [
-                    neigh for neigh in get_neigh
-                    if list(set(neigh.description)-set(self.description)) == [next_feature]
-                ][0]
-
-                return Action(self, next_state), next_state
+                return Action(self, next_state), next_state, False
         else:
-            #We select a state where the possible next feature has the maximum AORf
-            possible_feature: list = [list(set(neigh.description) - set(self.description))[0] for neigh in get_neigh]
-        
-            #We determine the max AORf
-            feature_max_aorf: list = np.argmax([aorf_histo[1][feat] for feat in possible_feature])
+            #Get argmax next state
+            next_state = self.get_argmax(get_neigh, aorf_histo)
 
-            #We get the max feature
-            next_feature: int = possible_feature[feature_max_aorf]
-
-            #We get the next state
-            next_state: State = [
-                neigh for neigh in get_neigh
-                if list(set(neigh.description)-set(self.description)) == [next_feature]
-            ][0]
-
-            return Action(self, next_state), next_state
+            return Action(self, next_state), next_state, False
 
         
+    def get_argmax(self, get_neigh: list, aorf_histo):
+        #We select a state where the possible next feature has the maximum AORf
+        possible_feature: list = [list(set(neigh.description) - set(self.description))[0] for neigh in get_neigh]
+    
+        #We determine the max AORf
+        feature_max_aorf: list = np.argmax([aorf_histo[1][feat] for feat in possible_feature])
+
+        #We get the max feature
+        next_feature: int = possible_feature[feature_max_aorf]
+
+        #We get the next state
+        next_state: State = [
+            neigh for neigh in get_neigh
+            if list(set(neigh.description)-set(self.description)) == [next_feature]
+        ][0]
+
+        return next_state
+
     def get_neighboors(self, feature_structure: dict, feature_list: list) -> list:
         '''
             Returns the list of the neighboors of the current state
@@ -105,11 +98,11 @@ class State:
                 state_neigh for state_neigh in feature_structure[neigh_depth_graph]
                 if len(list(set(state_neigh.description)-set(self.description))) == 1
             ]
-            
+
             possible_neigh: list = [
                 State([neigh_depth_graph, len(feature_structure[neigh_depth_graph])], self.description + [feature], 0)
                 for feature in feature_list
-                if feature not in self.description and np.any([set(self.description + [feature]) != set(exist_neigh.description) for exist_neigh in feature_structure[neigh_depth_graph]])
+                if feature not in self.description and not np.any([set(self.description + [feature])==set(neigh.description) for neigh in existing_neigh])
             ]
 
             return existing_neigh + possible_neigh
@@ -202,17 +195,14 @@ class FeatureSelectionProcessV3:
             
             Return a state randomly picked
         '''
-        random_start: int = np.random.randint(1, self.nb_of_features)
-        random_end: int = np.random.randint(random_start, self.nb_of_features)
-        chosen_state: list = np.random.default_rng(seed=42).permutation([var for var in range(self.nb_of_features)])[random_start:random_end]
-
-        depth: int = len(chosen_state)
-
         #Check if the dict is empty
-        if self.feature_structure.get(depth) is not None:
-            return State([depth, len(self.feature_structure.get(depth))], chosen_state, 0, 0)
+        if bool(self.feature_structure) == True:
+            random_depth: int = np.random.choice(list(self.feature_structure.keys()))
+            random_state: State = np.random.choice(self.feature_structure[random_depth])
+
+            return random_state, False
         else:
-            return State([depth, 0], chosen_state, 0, 0)
+            return self.start_from_empty_set()
 
     def start_from_empty_set(self) -> State:
         '''
@@ -222,7 +212,7 @@ class FeatureSelectionProcessV3:
         '''
         depth = 0
         if not bool(self.feature_structure):
-            return State([0, 0], [], 0, 0.0000), True
+            return State([0, 0], [], 0, 0.75), True
         else:
             return self.feature_structure[depth][0], True
 

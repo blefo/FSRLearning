@@ -50,7 +50,16 @@ class Feature_Selector_RL:
     not_explored: int = 0
 
 
-    def fit_transform(self, X, y) -> tuple([list, float]):
+    def fit_predict(self, X, y, clf = RandomForestClassifier(max_depth=4)) -> tuple([list, float]):
+        '''
+            Get the sorted weighted variables
+
+            Input : 
+            [
+                X, y : input data
+                clf : classifier used for reward evaluation
+            ]
+        '''
 
         #We init the process
         print('---------- AOR init ----------')
@@ -68,9 +77,9 @@ class Feature_Selector_RL:
 
         #We iterate it times on the graph to get informations about each feature
         for it in tqdm(range(self.nb_iter)):
-            
             #We start from the empty state
             init = feature_selection_process.start_from_empty_set()
+            #current_state = init[0]
             current_state, is_empty_state = init[0], init[1]
 
             #Informations about the current state
@@ -79,34 +88,37 @@ class Feature_Selector_RL:
             #We init the worsen state stop condition
             not_stop_worsen: bool = True
             previous_v_value, nb_worsen = current_state.v_value, 0
-
-            while current_state_depth <= 12 or not_stop_worsen:
-
+        
+            while not_stop_worsen:
                 #Worsen condition update
                 previous_v_value = current_state.v_value
 
-                current_state.get_reward(X_train, y_train, X_test, y_test)
-
                 #We select the next state
-                next_step = current_state.select_action(feature_selection_process.feature_structure, feature_selection_process.eps, feature_selection_process.aor)
-                next_action, next_state = next_step[0], next_step[1]
+                if current_state.number[0] == self.feature_number:
+                    not_stop_worsen = False
+                else:
+                    next_step = current_state.select_action(feature_selection_process.feature_structure, feature_selection_process.eps, feature_selection_process.aor, is_empty_state)
+                    next_action, next_state, was_eps = next_step[0], next_step[1], next_step[2]
 
                 #We count the explored state
-                if next_state.nb_visited == 0:
+                if was_eps:
                     self.explored += 1
                 else:
                     self.not_explored += 1
 
                 #We evaluate the reward of the next_state
-                next_state.get_reward(X_train, y_train, X_test, y_test)
+                next_state.get_reward(X_train, y_train, X_test, y_test, clf)
 
                 #We update the v_value of the current_state
                 current_state.update_v_value(.99, .99, next_state)
 
                 #We update the worsen stop condition
                 #We set the variables for the worsen v_value state stop condition
-                if previous_v_value > current_state.v_value:
-                    not_stop_worsen = False
+                if previous_v_value > current_state.v_value and not is_empty_state:
+                    if nb_worsen < 2:
+                        nb_worsen += 1
+                    else:
+                        not_stop_worsen = False
 
                 #We update the aor table
                 feature_selection_process.aor = next_action.get_aorf(feature_selection_process.aor)
@@ -122,6 +134,10 @@ class Feature_Selector_RL:
                 #We update the current_state's depth
                 current_state_depth = current_state.number[0]
 
+                if current_state_depth >= self.feature_number: #15 for the australian dataset
+                    not_stop_worsen = False
+
+                is_empty_state = False
             #print(f'{feature_selection_process.feature_structure}')
                 
             self.nb_explored.append(self.explored)
@@ -151,7 +167,7 @@ class Feature_Selector_RL:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
         print('---------- Score ----------')
-        for i in range(1, self.feature_number):
+        for i in range(1, self.feature_number - 1):
             #From RL
             clf = RandomForestClassifier(max_depth=4)
             clf.fit(X_train[results[-1][i:]], y_train)
@@ -175,12 +191,15 @@ class Feature_Selector_RL:
             print(f'Benchmark accuracy : {sele_acc}, RL accuracy : {accuracy} with {len(results[-1]) - i} variables {is_better_list}')
         
         print(f'Average benchmark accuracy : {np.mean(avg_benchmark_acccuracy)}, rl accuracy : {np.mean(avg_rl_acccuracy)}')
+        print(f'Median benchmark accuracy : {np.median(avg_benchmark_acccuracy)}, rl accuracy : {np.median(avg_rl_acccuracy)}')
 
         index_variable: list = [i for i in range(len(avg_benchmark_acccuracy))]
 
         avg_benchmark_acccuracy.reverse()
         avg_rl_acccuracy.reverse()
 
+        plt.axhline(y=np.median(avg_benchmark_acccuracy), c='cornflowerblue')
+        plt.axhline(y=np.median(avg_rl_acccuracy), c='orange')
         plt.plot(index_variable, avg_benchmark_acccuracy, label='Benchmark acccuracy')
         plt.plot(index_variable, avg_rl_acccuracy, label='RL accuracy')
         plt.xlabel('Number of variables')
