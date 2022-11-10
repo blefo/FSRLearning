@@ -91,3 +91,10 @@ fsrl_obj.get_depth_of_visited_states()
 ```
 
 Returns a plot. It is useful to see how deep the Markovian Decision Process goes in the graph. 
+
+## References
+
+This library has been implemented with the help of these two articles :
+- Sali Rasoul, Sodiq Adewole and Alphonse Akakpo, FEATURE SELECTION USING REINFORCEMENT LEARNING (2021)
+- Seyed Mehdin Hazrati Fard, Ali Hamzeh and Sattar Hashemi, Using reinforcement learning to find an optimal set of features (2013)
+
