@@ -1,14 +1,16 @@
 from dataclasses import dataclass
-import itertools
-from os import stat
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from scipy.special import softmax
 
 @dataclass
 class State:
     '''
         State object
+
+        number: position in the dictionary of the graph
+        description: represents the set of feature in the set
+        v_value: V value of the state
+        nb_visited: number of times that the set has been visited
     '''
     number: list
     description: list
@@ -18,7 +20,9 @@ class State:
 
     def get_reward(self, X_train, y_train, X_test, y_test, clf) -> float:
         '''
-            Return the reward of a set of variable
+            Returns the reward of a set of variable
+
+            clf: type of the classifier with which we want to evaluate the data
         '''
         #Train classifier with state_t variable and state t+1 variables and compute the diff of the accuracy
         if self.reward == 0:
@@ -26,12 +30,9 @@ class State:
                 self.reward = 0
                 return 0
             else:
-                #We smooth the average reward
-                #accuracy_smt = 0
-                #for i in range(5):
+                #The state has never been visited and we init the reward
                 clf.fit(X_train[self.description], y_train)
                 accuracy: float = clf.score(X_test[self.description], y_test)
-                    #accuracy_smt += accuracy
 
                 self.reward =accuracy
                 return self.reward
@@ -41,6 +42,9 @@ class State:
     def select_action(self, feature_structure: dict, eps: float, aorf_histo: list, is_empty_state: bool):
         '''
             Returns an action object
+
+            feature_structure: current dictionnary of the structure of the graph
+            eps: probability of choosing a random action [between 0 and 1]
 
             This method enables to train only once a model and get the accuracy
         '''
@@ -70,6 +74,12 @@ class State:
 
         
     def get_argmax(self, get_neigh: list, aorf_histo):
+        '''
+            Returns the argmax of the list of neighbors 
+
+            get_neigh: list of the neighbors of the self state
+            aorf_histo: value of the aor
+        '''
         #We select a state where the possible next feature has the maximum AORf
         possible_feature: list = [list(set(neigh.description) - set(self.description))[0] for neigh in get_neigh]
     
@@ -90,6 +100,9 @@ class State:
     def get_neighboors(self, feature_structure: dict, feature_list: list) -> list:
         '''
             Returns the list of the neighboors of the current state
+
+            feature_structure: current dictionnary of the structure of the graph
+            feature_list: list of the int identifiers of the features in the data set (len = number of features in the datas set)
         '''
         neigh_depth_graph: int = self.number[0] + 1
 
@@ -118,12 +131,20 @@ class State:
     def update_v_value(self, alpha: float, gamma: float, next_state) -> float:
         '''
             Update the v_value of a state
+
+            Alpha [0; 1] : rate of updates
+            Gamma [0; 1] : discount factor to moderate the effect of observing the next state (0=shortsighted; 1=farsighted)
+            next_state: the next state that has been chosen by the eps_greedy algorithm
+
+            Returns a float number
         '''
         self.v_value += alpha * ((next_state.reward - self.reward) + gamma * next_state.v_value - self.v_value)   
         
     def is_final(self, nb_of_features: int) -> bool:
         '''
             Check if a state is a final state (with all the features in the state)
+
+            nb_of_features: number of features in the data set 
 
             Returns True if all the possible features are in the state
         '''
@@ -135,6 +156,8 @@ class State:
     def is_equal(self, compared_state) -> bool:
         '''
             Compare if two State objects are equal
+
+            compared_state: state to be compared with the self state
 
             Returns True if yes else returns False
         '''
@@ -154,6 +177,8 @@ class Action:
     def get_aorf(self, aor_historic: list) -> float:
         '''
         Update the ARO of a feature
+
+        aor_historic: get the not updated aor table
 
         Return the AOR table
         '''
@@ -176,6 +201,10 @@ class FeatureSelectionProcessV3:
     '''
         Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]]
 
+        nb_of_features: Number of feature in the data set
+        eps: probability of choosing a random action (uniform or softmax)
+        alpha: 
+        gamma: 
     '''
     nb_of_features: int
     eps: float
@@ -219,6 +248,8 @@ class FeatureSelectionProcessV3:
     def add_to_historic(self, visited_state: State):
         '''
             Add to the feature structure historic function
+
+            visited_state: current state visited by the simulation
         '''
         state_depth: int = visited_state.number[0]
 
