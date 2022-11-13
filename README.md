@@ -1,6 +1,6 @@
 # Python FSRLeaning
 
-FSRLeaning is a python library for feature selection using the reinforcement learning method. The library is intended to be easy to use and efficient in the feature selection problem.
+FSRLeaning is a python library for feature selection using the reinforcement learning approach. The library is intended to be easy to use and efficient in the feature selection problem.
 
 ## Installation
 
@@ -43,14 +43,14 @@ The feature_Selector_RL has several parameters that can be tuned. Here is all of
 
 - feature_number (integer) : number of features in the DataFrame X
 
-- feature_structure (dictionary) : dictionary for the graph implementation
-- eps (float [0; 1]) : probability of choosing a random next state, 0 is an only greedy algorithm and 1 only random
-- alpha (float [0; 1]): control the rate of updates, 0 is a very not updating state and 1 a very updated
-- gamma (float [0, 1]): factor of moderation of the observation of the next state, 0 is a shortsighted condition and 1 it exhibits farsighted behavior
-- nb_iter (int): number of sequences to go through the graph
-- starting_state ("empty" or "random") : if "empty" the algorithm starts from the empty state and if "random" the algorithm starts from a random state in the graph 
+- feature_structure (dictionary, optional) : dictionary for the graph implementation
+- eps (float [0; 1], optional) : probability of choosing a random next state, 0 is an only greedy algorithm and 1 only random
+- alpha (float [0; 1], optional): control the rate of updates, 0 is a very not updating state and 1 a very updated
+- gamma (float [0, 1], optional): factor of moderation of the observation of the next state, 0 is a shortsighted condition and 1 it exhibits farsighted behavior
+- nb_iter (int, optional): number of sequences to go through the graph
+- starting_state ("empty" or "random", optional) : if "empty" the algorithm starts from the empty state and if "random" the algorithm starts from a random state in the graph 
 
-The output of the selection process is a 2-tuple object.
+The output of the selection process is a 5-tuple object.
 
 - Index of the features that have been sorted
 
@@ -96,5 +96,5 @@ Returns a plot. It is useful to see how deep the Markovian Decision Process goes
 
 This library has been implemented with the help of these two articles :
 - Sali Rasoul, Sodiq Adewole and Alphonse Akakpo, FEATURE SELECTION USING REINFORCEMENT LEARNING (2021)
-- Seyed Mehdin Hazrati Fard, Ali Hamzeh and Sattar Hashemi, Using reinforcement learning to find an optimal set of features (2013)
+- Seyed Mehdin Hazrati Fard, Ali Hamzeh and Sattar Hashemi, USING REINFORCEMENT LEARNING TO FIND AN OPTIMAL SET OF FEATURES (2013)
 
