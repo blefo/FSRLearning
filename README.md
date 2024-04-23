@@ -1,16 +1,18 @@
 # Python FSRLeaning
 
-FSRLeaning is a python library for feature selection using the reinforcement learning approach. The library is designed to be easy to use and efficient in the feature selection problem. The library is designed to select the most relevant feature from a very large number of features.
+FSRLeaning is a Python library for feature selection using reinforcement learning. It's designed to be easy to use and efficient, particularly for selecting the most relevant features from a very large set.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install FSRLearning.
+Install FSRLearning using pip:
 
 ```bash
 pip install FSRLearning
 ```
 
 ## Example usage
+
+### Data Pre-processing
 
 The first step is a pre-processing of the data. You need to give as input to the method for feature selection a X and y pandas DataFrame. X is the dataset with all the features that we want to evaluate and y the label to be predicted. **It is highly recommended to create a mapping between features and a list of number.** For example each feature is associated with a number. Here is an example of the data pre-processing step on a data set with 14 features including 1 label.
 ```python
@@ -91,6 +93,12 @@ fsrl_obj.get_depth_of_visited_states()
 ```
 
 Returns a plot. It is useful to see how deep the Markovian Decision Process goes in the graph. 
+
+## Your contribution is welcomed !
+
+- Automatise the data processing step and generalize the input data format and type
+- Distribute the computation of each reward for making the algorithm faster
+- Add more vizualization and feedback methods
 
 ## References
 
