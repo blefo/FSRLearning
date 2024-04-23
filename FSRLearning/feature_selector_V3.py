@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 #Maths and others
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +6,7 @@ from tqdm import tqdm
 
 #Other class
 from state import State
-from fsrlearning import FeatureSelectionProcessV3
+from fsrlearning import FeatureSelectionProcess
 
 #ML Sklearn library
 from sklearn.feature_selection import RFE
@@ -16,7 +14,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 
-class Feature_Selector_RL:
+class FeatureSelectorRL:
     '''
         This is the class used to create a feature selector with the RL method
 
@@ -82,7 +80,7 @@ class Feature_Selector_RL:
         self.nb_not_explored = []
 
         print('---------- Process init ----------')
-        feature_selection_process = FeatureSelectionProcessV3(self.feature_number, self.eps, self.alpha, self.gamma, self.aor, self.feature_structure)
+        feature_selection_process = FeatureSelectionProcess(self.feature_number, self.eps, self.alpha, self.gamma, self.aor, self.feature_structure)
 
         print('---------- Data Processing ----------')
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)

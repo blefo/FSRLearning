@@ -3,7 +3,7 @@ from state import State
 
 import numpy as np
 
-class FeatureSelectionProcessV3:
+class FeatureSelectionProcess:
     '''
         Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]]
 
