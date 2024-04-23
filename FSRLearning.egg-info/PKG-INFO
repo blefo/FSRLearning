@@ -1,9 +1,0 @@
-Metadata-Version: 2.1
-Name: FSRLearning
-Version: 1.0.5
-Summary: Here is an implementation of a feature selection algorithm based on the reinforcement learning method.
-Home-page: https://github.com/blefo/FS_RL
-Author: Baptiste Lefort
-Author-email: baptiste.lefort@icloud.com
-License: MIT
-License-File: LICENSE.txt
