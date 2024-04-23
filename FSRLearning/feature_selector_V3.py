@@ -1,24 +1,21 @@
 from dataclasses import dataclass
-from operator import index
 
 #Maths and others
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import make_interp_spline
 from tqdm import tqdm
-import itertools
 
 #Other class
-from feature_selection_RL_V3 import *
+from state import State
+from fsrlearning import FeatureSelectionProcessV3
 
 #ML Sklearn library
 from sklearn.feature_selection import RFE
-from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 
-@dataclass
 class Feature_Selector_RL:
     '''
         This is the class used to create a feature selector with the RL method
@@ -39,18 +36,31 @@ class Feature_Selector_RL:
             ]
     '''
 
-    feature_number: int
-    nb_explored: list = None
-    nb_not_explored: list = None
-    feature_structure: dict = None
-    aor: list = None
-    eps: float = .1
-    alpha: float = .5
-    gamma: float = .70
-    nb_iter: int = 100
-    explored: int = 0
-    not_explored: int = 0
-    starting_state: str = 'empty'
+    def __init__(self, 
+                 feature_number: int,
+                 nb_explored: list = None,
+                 nb_not_explored: list = None,
+                 feature_structure: dict = None,
+                 aor: list = None,
+                 eps: float = .1,
+                 alpha: float = .5,
+                 gamma: float = .70,
+                 nb_iter: int = 100,
+                 explored: int = 0,
+                 not_explored: int = 0,
+                 starting_state: str = 'empty'):
+        self.feature_number = feature_number
+        self.nb_explored = nb_explored
+        self.nb_not_explored = nb_not_explored
+        self.feature_structure = feature_structure
+        self.aor = aor
+        self.eps = eps
+        self.alpha = alpha
+        self.gamma = gamma
+        self.nb_iter = nb_iter
+        self.explored = explored
+        self.not_explored = not_explored
+        self.starting_state = starting_state
 
 
     def fit_predict(self, X, y, clf = RandomForestClassifier(max_depth=4)) -> tuple([list, float]):

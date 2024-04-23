@@ -1,8 +1,7 @@
-from dataclasses import dataclass
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from action import Action
 
-@dataclass
+import numpy as np
+
 class State:
     '''
         State object
@@ -12,11 +11,17 @@ class State:
         v_value: V value of the state
         nb_visited: number of times that the set has been visited
     '''
-    number: list
-    description: list
-    v_value: float
-    reward: float = 0
-    nb_visited: int = 0
+    def __init__(self, 
+                 number: list,
+                 description: list,
+                 v_value: float,
+                 reward: float = 0,
+                 nb_visited: int = 0) -> None:
+        self.number = number
+        self.description = description
+        self.v_value = v_value
+        self.reward = reward
+        self.nb_visited = nb_visited
 
     def get_reward(self, X_train, y_train, X_test, y_test, clf) -> float:
         '''
@@ -165,138 +170,6 @@ class State:
             return True
         else:
             return False
-
-@dataclass
-class Action:
-    '''
-        Action Object
-    '''
-    state_t: State
-    state_next: State              
-
-    def get_aorf(self, aor_historic: list) -> float:
-        '''
-        Update the ARO of a feature
-
-        aor_historic: get the not updated aor table
-
-        Return the AOR table
-        '''
-        #We get the feature played and information about it
-        chosen_feature: int = list(set(self.state_next.description)-set(self.state_t.description))[0]
-
-        nb_played: int = aor_historic[0][chosen_feature] + 1    
-        aorf_value: float = aor_historic[1][chosen_feature]
-
-        aor_new = aor_historic.copy()
-
-        #We update the value
-        aor_new[0][chosen_feature] = nb_played
-        aor_new[1][chosen_feature] = ((nb_played-1) * aorf_value + self.state_t.v_value) / nb_played
-
-        return aor_new
-
-@dataclass
-class FeatureSelectionProcessV3:
-    '''
-        Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]]
-
-        nb_of_features: Number of feature in the data set
-        eps: probability of choosing a random action (uniform or softmax)
-        alpha: 
-        gamma: 
-    '''
-    nb_of_features: int
-    eps: float
-    alpha: float
-    gamma: float
-
-    #Memory of AORf [[nb f is selected], [AOR value]]
-    aor: list
-
-    #Init the state structure
-    feature_structure: dict
-
-
-    def pick_random_state(self) -> State:
-        '''
-            Select a random state in all the possible state space
-            
-            Return a state randomly picked
-        '''
-        #Check if the dict is empty
-        if bool(self.feature_structure) == True:
-            random_depth: int = np.random.choice(list(self.feature_structure.keys()))
-            random_state: State = np.random.choice(self.feature_structure[random_depth])
-
-            return random_state, False
-        else:
-            return self.start_from_empty_set()
-
-    def start_from_empty_set(self) -> State:
-        '''
-            Start from the empty set (with no feature selected)
-            
-            Returns the empty initial state
-        '''
-        depth = 0
-        if not bool(self.feature_structure):
-            return State([0, 0], [], 0, 0.75), True
-        else:
-            return self.feature_structure[depth][0], True
-
-    def add_to_historic(self, visited_state: State):
-        '''
-            Add to the feature structure historic function
-
-            visited_state: current state visited by the simulation
-        '''
-        state_depth: int = visited_state.number[0]
-
-        #We increment the number of visit of the current state
-        if visited_state.description != []:
-            visited_state.nb_visited += 1
-
-        if state_depth in self.feature_structure:
-            #If there is a key associated to the state depth
-            is_already_existing: list = [
-                state_searching for state_searching in self.feature_structure[state_depth]
-                if visited_state.is_equal(state_searching)
-            ]
-
-            if not is_already_existing:
-                #If the state is not already registered
-                self.feature_structure[state_depth].append(visited_state)
-            else:
-                #The state already exists
-                #We remove the existing state and replace it by the new one
-                self.feature_structure[state_depth].remove([
-                    state_rem for state_rem in self.feature_structure[state_depth]
-                    if visited_state.is_equal(state_rem)
-                ][0])
-                self.feature_structure[state_depth].append(visited_state)
-        else:
-            #The layer does not exist, we can simply add it
-            self.feature_structure[state_depth] = [visited_state]
-
-
-    def get_final_aor_sorted(self) -> list:
-        '''
-            Returns the aor table sorted by ascending
-
-            Index of the feature
-            Number of time the feature has been played
-            Value of the feature
-            Best feature (from the lowest to the biggest)
-        '''
-
-        index: list = [i for i in range(self.nb_of_features)]
-        nb_played: list = self.aor[0]
-        values: list = self.aor[1]
-
-        index, values = zip(*sorted(zip(index, values)))
-
-        return [index, nb_played, values, np.argsort(self.aor[1])]
 
 
     
