@@ -14,6 +14,12 @@ pip install FSRLearning
 
 ### Data Pre-processing
 
+#### The Dataset
+
+In this example, we're using the Australian credit approval dataset. It has 14 features that have been intentionally anonymized. The goal is to predict whether the label is 0 or 1. We're using this dataset to demonstrate how to use the library, but the model can work with any dataset. You can find more details about the dataset [here](https://archive.ics.uci.edu/dataset/143/statlog+australian+credit+approval).
+
+#### The process
+
 The first step is a pre-processing of the data. You need to give as input to the method for feature selection a X and y pandas DataFrame. X is the dataset with all the features that we want to evaluate and y the label to be predicted. **It is highly recommended to create a mapping between features and a list of number.** For example each feature is associated with a number. Here is an example of the data pre-processing step on a data set with 14 features including 1 label.
 ```python
 import pandas as pd
