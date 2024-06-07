@@ -1,5 +1,8 @@
 # FSRLeaning - Python Library
 
+[![Downloads](https://static.pepy.tech/badge/FSRLearning)](https://pepy.tech/project/FSRLearning)
+[![Downloads](https://static.pepy.tech/badge/FSRLearning/month)](https://pepy.tech/project/FSRLearning)
+
 FSRLeaning is a Python library for feature selection using reinforcement learning. It's designed to be easy to use and efficient, particularly for selecting the most relevant features from a very large set.
 
 ## Installation
