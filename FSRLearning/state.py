@@ -52,7 +52,7 @@ class State:
                     else:
                         accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'balanced_accuracy'))
                 elif is_regressor(clf):
-                    accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'balanced_accuracy'))
+                    accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'r2'))
 
                 self.reward = accuracy
                 return self.reward
