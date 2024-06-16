@@ -1,6 +1,4 @@
-
-from state import State
-
+from .state import State
 import numpy as np
 
 class FeatureSelectionProcess:
@@ -29,7 +27,6 @@ class FeatureSelectionProcess:
 
         #Init the state structure
         self.feature_structure = feature_structure
-
 
     def pick_random_state(self) -> State:
         '''
@@ -91,7 +88,6 @@ class FeatureSelectionProcess:
         else:
             #The layer does not exist, we can simply add it
             self.feature_structure[state_depth] = [visited_state]
-
 
     def get_final_aor_sorted(self) -> list:
         '''
