@@ -1,4 +1,4 @@
-from .action import Action
+from action import Action
 
 import numpy as np
 import pandas as pd
@@ -33,13 +33,13 @@ class State:
 
             clf: type of the classifier with which we want to evaluate the data
         '''
-        #Train classifier with state_t variable and state t+1 variables and compute the diff of the accuracy
+        # Train classifier with state_t variable and state t+1 variables and compute the diff of the accuracy
         if self.reward == 0:
             if self.description == []:
                 self.reward = 0
                 return 0
             else:
-                #The state has never been visited and we init the reward
+                # The state has never been visited and init the reward
                 df = pd.concat([X.iloc[:, self.description], y], axis = 1)
                 df = df.drop_duplicates(ignore_index = True) 
 

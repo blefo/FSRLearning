@@ -1,5 +1,6 @@
-from .state import State
+from state import State
 import numpy as np
+
 
 class FeatureSelectionProcess:
     '''
@@ -10,6 +11,7 @@ class FeatureSelectionProcess:
         alpha: 
         gamma: 
     '''
+
     def __init__(self,
                  nb_of_features: int,
                  eps: float,
@@ -81,9 +83,10 @@ class FeatureSelectionProcess:
                 #The state already exists
                 #We remove the existing state and replace it by the new one
                 self.feature_structure[state_depth].remove([
-                    state_rem for state_rem in self.feature_structure[state_depth]
-                    if visited_state.is_equal(state_rem)
-                ][0])
+                                                               state_rem for state_rem in
+                                                               self.feature_structure[state_depth]
+                                                               if visited_state.is_equal(state_rem)
+                                                           ][0])
                 self.feature_structure[state_depth].append(visited_state)
         else:
             #The layer does not exist, we can simply add it
