@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import make_interp_spline
 from tqdm import tqdm
 
-from state import State
-from fsrlearning import FeatureSelectionProcess
+from .state import State
+from .fsrlearning import FeatureSelectionProcess
 
 from sklearn.feature_selection import RFE
 from sklearn.ensemble import RandomForestClassifier

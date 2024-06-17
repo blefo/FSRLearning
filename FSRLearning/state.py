@@ -1,4 +1,4 @@
-from action import Action
+from .action import Action
 
 import numpy as np
 import pandas as pd
