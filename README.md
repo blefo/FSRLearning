@@ -40,10 +40,10 @@ y = australian_data[14]
 After this step we can simply run a feature selection and ranking process that maximises a metric. 
 
 ```python
-from FSRLearning import Feature_Selector_RL
+from FSRLearning import FeatureSelectorRL
 
 # Create the object of feature selection with RL
-fsrl_obj = Feature_Selector_RL(14, nb_iter=200)
+fsrl_obj = FeatureSelectorRL(14, nb_iter=200)
 
 # Returns the results of the selection and the ranking
 results = fsrl_obj.fit_predict(X, y)

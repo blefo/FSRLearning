@@ -1,18 +1,18 @@
-#Maths and others
+# Math and others
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import make_interp_spline
 from tqdm import tqdm
 
-#Other class
-from state import State
-from fsrlearning import FeatureSelectionProcess
+# Other class
+from .state import State
+from .fsrlearning import FeatureSelectionProcess
 
-#ML Sklearn library
+# Scikit-Learn library
 from sklearn.feature_selection import RFE
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-
+from sklearn.model_selection import cross_val_score, cross_validate
 
 class FeatureSelectorRL:
     '''
@@ -60,8 +60,7 @@ class FeatureSelectorRL:
         self.not_explored = not_explored
         self.starting_state = starting_state
 
-
-    def fit_predict(self, X, y, clf = RandomForestClassifier(max_depth=4)) -> tuple([list, float]):
+    def fit_predict(self, X, y, clf = RandomForestClassifier(n_jobs = -1)) -> tuple([list, float]):
         '''
             Get the sorted weighted variables
 
@@ -83,8 +82,9 @@ class FeatureSelectorRL:
         feature_selection_process = FeatureSelectionProcess(self.feature_number, self.eps, self.alpha, self.gamma, self.aor, self.feature_structure)
 
         print('---------- Data Processing ----------')
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
-
+        X = pd.DataFrame(X)
+        y = pd.Series(y)
+    
         print('---------- The process has been successfully init ----------')
 
         print('---------- Training ----------')
@@ -125,7 +125,7 @@ class FeatureSelectorRL:
                     self.not_explored += 1
 
                 #We evaluate the reward of the next_state
-                next_state.get_reward(X_train, y_train, X_test, y_test, clf)
+                next_state.get_reward(clf, X, y)
 
                 #We update the v_value of the current_state
                 current_state.update_v_value(.99, .99, next_state)
@@ -207,7 +207,6 @@ class FeatureSelectorRL:
         plt.ylabel('Number of visits')
         plt.plot()
 
-
     def compare_with_benchmark(self, X, y, results) -> list:
         '''
             Returns all the metrics at each iteration on the set of feature
@@ -221,20 +220,29 @@ class FeatureSelectorRL:
         results = results[0]
 
         print('---------- Data Processing ----------')
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+        X = pd.DataFrame(X)
+        y = pd.Series(y)
 
         print('---------- Score ----------')
         for i in range(1, self.feature_number):
             #From RL
-            clf = RandomForestClassifier(max_depth=4)
-            clf.fit(X_train[results[-1][i:]], y_train)
-            accuracy: float = clf.score(X_test[results[-1][i:]], y_test)
+            clf = RandomForestClassifier(n_jobs = -1)
+            df = pd.concat([X.iloc[:, results[-1][i:]], y], axis = 1)
+            df = df.drop_duplicates(ignore_index = True) 
+
+            min_samples = np.min(np.array(df.iloc[:, -1].value_counts()))
+            if min_samples < 5 and min_samples >= 2:
+                accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = min_samples, scoring = 'balanced_accuracy'))
+            elif min_samples < 2:
+                accuracy: float = 0
+            else:
+                accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'balanced_accuracy'))
 
             #Benchmark
-            estimator = RandomForestClassifier(max_depth=4)
+            estimator = RandomForestClassifier(n_jobs = -1)
             selector = RFE(estimator, n_features_to_select=len(results[-1]) - i, step=1)
-            selector = selector.fit(X_train, y_train)
-            sele_acc = selector.score(X_test, y_test)
+            cv_results = cross_validate(selector, X, y, cv = 5, scoring = 'balanced_accuracy', return_estimator = True)
+            sele_acc = np.mean(cv_results['test_score'])
 
             if accuracy >= sele_acc:
                 is_better_list.append(1)
@@ -244,7 +252,7 @@ class FeatureSelectorRL:
             avg_benchmark_acccuracy.append(sele_acc)
             avg_rl_acccuracy.append(accuracy)
 
-            print(f'Set of variables : Benchmark : {X_train.columns[selector.support_].tolist()} and RL : {results[-1][i:]}')
+            print(f"Set of variables : Benchmark (For Each Fold): {[X.columns[selector.support_].tolist() for selector in cv_results['estimator']]} and RL : {results[-1][i:]}")
             print(f'Benchmark accuracy : {sele_acc}, RL accuracy : {accuracy} with {len(results[-1]) - i} variables {is_better_list}')
         
         print(f'Average benchmark accuracy : {np.mean(avg_benchmark_acccuracy)}, rl accuracy : {np.mean(avg_rl_acccuracy)}')
@@ -304,6 +312,4 @@ class FeatureSelectorRL:
                         best_v_value = value.v_value
                         best_state_v_value = value
                     
-
-
         return [best_state_reward, best_reward], [best_state_v_value, best_v_value]

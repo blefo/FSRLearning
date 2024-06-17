@@ -1,6 +1,10 @@
-from action import Action
+from .action import Action
 
 import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import cross_val_score
+from sklearn.base import is_classifier, is_regressor
 
 class State:
     '''
@@ -23,7 +27,7 @@ class State:
         self.reward = reward
         self.nb_visited = nb_visited
 
-    def get_reward(self, X_train, y_train, X_test, y_test, clf) -> float:
+    def get_reward(self, clf, X, y) -> float:
         '''
             Returns the reward of a set of variable
 
@@ -36,16 +40,27 @@ class State:
                 return 0
             else:
                 #The state has never been visited and we init the reward
-                clf.fit(X_train[self.description], y_train)
-                accuracy: float = clf.score(X_test[self.description], y_test)
+                df = pd.concat([X.iloc[:, self.description], y], axis = 1)
+                df = df.drop_duplicates(ignore_index = True) 
 
-                self.reward =accuracy
+                if is_classifier(clf):
+                    min_samples = np.min(np.array(df.iloc[:, -1].value_counts()))
+                    if min_samples < 5 and min_samples >= 2:
+                        accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = min_samples, scoring = 'balanced_accuracy'))
+                    elif min_samples < 2:
+                        accuracy: float = 0
+                    else:
+                        accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'balanced_accuracy'))
+                elif is_regressor(clf):
+                    accuracy: float = np.mean(cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv = 5, scoring = 'r2'))
+
+                self.reward = accuracy
                 return self.reward
         else:
             return self.reward
 
     def select_action(self, feature_structure: dict, eps: float, aorf_histo: list, is_empty_state: bool):
-        '''
+        ''' 
             Returns an action object
 
             feature_structure: current dictionnary of the structure of the graph
@@ -76,7 +91,6 @@ class State:
             next_state = self.get_argmax(get_neigh, aorf_histo)
 
             return Action(self, next_state), next_state, False
-
         
     def get_argmax(self, get_neigh: list, aorf_histo):
         '''
@@ -170,11 +184,3 @@ class State:
             return True
         else:
             return False
-
-
-    
-    
-
-    
-
-    
