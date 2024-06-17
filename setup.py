@@ -4,7 +4,7 @@ setup(
   packages=[
     'FSRLearning',
   ],
-  version = '1.0.6',
+  version = '1.0.7',
   license='MIT',
   description = 'The first feature selection method based on reinforcement learning - Python library available on pip for a fast deployment.',
   author = 'Baptiste Lefort',
