@@ -23,7 +23,7 @@ In this example, we're using the Australian credit approval dataset. It has 14 f
 
 #### The process
 
-The first step is a pre-processing of the data. You need to give as input to the method for feature selection a X and y pandas DataFrame. X is the dataset with all the features that we want to evaluate and y the label to be predicted. **It is highly recommended to create a mapping between features and a list of number.** For example each feature is associated with a number. Here is an example of the data pre-processing step on a data set with 14 features including 1 label.
+The first step is pre-processing the data. You need to give an input to the method for feature selection as X and y pandas DataFrames. X is the dataset with all the features that we want to evaluate and y the label to be predicted. Here is an example of the data pre-processing step on a data set with 14 features including 1 label.
 ```python
 import pandas as pd
 
@@ -37,7 +37,7 @@ X = australian_data.drop(australian_data.columns[14], axis=1)
 y = australian_data[australian_data.columns[14]]
 ```
 
-After this step we can simply run a feature selection and ranking process that maximises a metric. 
+After this step we can simply run the feature selection and ranking process that maximises balanced accuracy for classification problems. 
 
 ```python
 from FSRLearning import FeatureSelectorRL
@@ -56,8 +56,8 @@ FeatureSelectorRL has several parameters that can be tuned:
 - eps (float [0, 1], default = 0.1) : Probability of choosing a random next state. 0 is an only greedy algorithm and 1 is an only random algorithm.
 - alpha (float [0, 1], default = 0.5) : Controls the rate of updates. 0 is a very not updating state and 1 is a very updating state.
 - gamma (float [0, 1], default = 0.7) : Discount factor to moderate the effect of observing the next state. 0 exhibits shortsighted behavior and 1 exhibits farsighted behavior.
-nb_iter (integer, default = 100) : Number of sequences to go through the graph.
-starting_state ({"empty", "random"}, default = "empty") : Starting state of the algorithm. 
+- nb_iter (integer, default = 100) : Number of sequences to go through the graph.
+- starting_state ({"empty", "random"}, default = "empty") : Starting state of the algorithm. 
 
 The output of fit_predict is a 2-object tuple:
 - List:
@@ -68,23 +68,23 @@ The output of fit_predict is a 2-object tuple:
 - Integer:
   - Number of states visited.
 
-## Existing methods
+## Methods
 
-- Compare the performance of the FSRLearning library with RFE from Sickit-Learn :
+- Compare the performance of the FSRLearning library with RFE from Sickit-Learn:
 
 ```python
 fsrl_obj.compare_with_benchmark(X, y, results, RandomForestClassifier(n_jobs = -1))
 ```
 Returns some comparisons and plot a graph with the metric for each set of features selected. It is useful for parameters tuning. 
 
-- Get the evolution of the number of the visited states for the first time and the already visited states :
+- Get the evolution of the number of the visited states for the first time and the already visited states:
 
 ```python
 fsrl_obj.get_plot_ratio_exploration()
 ```
 Returns a plot. It is useful to get an overview of how the graph is browse and to tune the epsilon parameter (exploration parameter).
 
-- Get an overview of the relative impact of each feature on the model :
+- Get an overview of the relative impact of each feature on the model:
 
 ```python
 fsrl_obj.get_feature_strength(results)
@@ -92,7 +92,7 @@ fsrl_obj.get_feature_strength(results)
 
 Returns a bar plot.
 
-- Get an overview of the action of the stop conditions :
+- Get an overview of the action of the stop conditions:
 
 ```python
 fsrl_obj.get_depth_of_visited_states()
@@ -108,6 +108,6 @@ Returns a plot. It is useful to see how deep the Markovian Decision Process goes
 
 ## References
 
-This library has been implemented with the help of these two articles :
+This library has been implemented with the help of these two articles:
 - Sali Rasoul, Sodiq Adewole and Alphonse Akakpo, FEATURE SELECTION USING REINFORCEMENT LEARNING (2021)
 - Seyed Mehdin Hazrati Fard, Ali Hamzeh and Sattar Hashemi, USING REINFORCEMENT LEARNING TO FIND AN OPTIMAL SET OF FEATURES (2013)
