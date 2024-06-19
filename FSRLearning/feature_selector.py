@@ -12,62 +12,73 @@ from .fsrlearning import FeatureSelectionProcess
 from sklearn.feature_selection import RFE
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, cross_validate
+from sklearn.base import is_classifier, is_regressor
 
 class FeatureSelectorRL:
-    """
-        This is the class used to create a feature selector with the RL method
+    """Class for feature selector using the RL method."""
+        
+    def __init__(self, feature_number: int, eps: float = .1, alpha: float = .5, gamma: float = .70, nb_iter: int = 100, 
+                 starting_state: str = 'empty', nb_explored: list = None, nb_not_explored: list = None, 
+                 feature_structure: dict = None, aor: list = None, explored: int = 0, not_explored: int = 0):
+        """
+        Constructor for FeatureSelectorRL.
 
-        fit enable to get the results structured as follows:
-            [
-                Feature index : list,
-                Number of times a feature has been played: list
-                AOR value per feature: list,
-                Sorted list of feature from the less to the most important for the model: list
-            ]
+        Parameters
+        ----------
+        feature_number : integer
+            Number of features.
+        eps : float [0, 1], default = 0.1
+            Probability of choosing a random next state. 0 is an only greedy algorithm and 1 is an only random algorithm.
+        alpha : float [0, 1], default = 0.5
+            Controls the rate of updates. 0 is a very not updating state and 1 is a very updating state.
+        gamma : float [0, 1], default = 0.7
+            Discount factor to moderate the effect of observing the next state. 0 exhibits shortsighted behavior and 1 exhibits farsighted behavior.
+        nb_iter : integer, default = 100
+            Number of sequences to go through the graph.
+        starting_state : {"empty", "random"}, default = "empty"
+            Starting state of the algorithm. 
 
-        Parameters explanation:
-            [
-                Alpha [0; 1] : rate of updates
-                Gamma [0; 1] : discount factor to moderate the effect of observing the next state (0=shortsighted; 1=farsighted)
-                Starting_state : string empty of random --> if empty then the starting state is empty elif random we start from a random state
-            ]
-    """
-
-    def __init__(self,
-                 feature_number: int,
-                 nb_explored: list = None,
-                 nb_not_explored: list = None,
-                 feature_structure: dict = None,
-                 aor: list = None,
-                 eps: float = .1,
-                 alpha: float = .5,
-                 gamma: float = .70,
-                 nb_iter: int = 100,
-                 explored: int = 0,
-                 not_explored: int = 0,
-                 starting_state: str = 'empty'):
+            If "empty", the algorithm starts from an empty state.
+            If "random", the algorithm starts from a random state in the graph.
+        """
+                     
         self.feature_number = feature_number
-        self.nb_explored = nb_explored
-        self.nb_not_explored = nb_not_explored
-        self.feature_structure = feature_structure
-        self.aor = aor
         self.eps = eps
         self.alpha = alpha
         self.gamma = gamma
         self.nb_iter = nb_iter
+        self.starting_state = starting_state
+        self.nb_explored = nb_explored
+        self.nb_not_explored = nb_not_explored
+        self.feature_structure = feature_structure
+        self.aor = aor
         self.explored = explored
         self.not_explored = not_explored
-        self.starting_state = starting_state
 
-    def fit_predict(self, X, y, clf=RandomForestClassifier(n_jobs=-1)) -> tuple[list, int]:
-        """
-            Get the sorted weighted variables
+    def fit_predict(self, X, y, estimator):
+        """        
+        Fit the FeatureSelectorRL algorithm according to the given data.
 
-            Input :
-            [
-                X, y : input data
-                clf : classifier used for reward evaluation
-            ]
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+            Data vector, where `n_samples` is the number of samples and `n_features` is the number of features.
+        y : array-like of shape (n_samples,)
+            Target values.
+        estimator : Classifier or Regressor Estimator 
+            A supervised learning estimator with a ``fit`` method. Used for reward evaluation.
+
+        Returns
+        ----------
+        results : tuple
+            Output of the selection process (2-object tuple):
+                List:
+                    Index of the features that have been sorted.
+                    Number of times that each feature has been chosen.
+                    Mean reward brought by each feature.
+                    Ranking of the features from the less important to the most important.
+                Integer:
+                    Number of states visited.
         """
 
         # Init the process
@@ -127,7 +138,7 @@ class FeatureSelectorRL:
                     self.not_explored += 1
 
                 # We evaluate the reward of the next_state
-                next_state.get_reward(clf, X, y)
+                next_state.get_reward(estimator, X, y)
 
                 # We update the v_value of the current_state
                 current_state.update_v_value(.99, .99, next_state)
@@ -168,8 +179,9 @@ class FeatureSelectorRL:
 
     def get_plot_ratio_exploration(self):
         """
-            Plots the graph of the evolution of the already and newly visited states
+        Plot a graph comparing the number of already visited nodes and visited nodes.
         """
+        
         plt.plot([i for i in range(len(self.nb_not_explored))], self.nb_not_explored, label='Already explored State')
         plt.plot([i for i in range(len(self.nb_explored))], self.nb_explored, label='Explored State')
         plt.xlabel('Number of iterations')
@@ -178,10 +190,16 @@ class FeatureSelectorRL:
 
         plt.show()
 
-    def get_feature_strengh(self, results):
+    def get_feature_strength(self, results):
         """
-            Plots the graph of the relative strengh of each variable
+        Plot a graph of the relative impact of each feature on the model.
+
+        Parameter
+        ----------
+        results : 2-object tuple
+            Results returned from fit_predict.
         """
+        
         #Relative strengh of the variable
         plt.bar(x=results[0][0], height=results[0][2], color=['blue' if rew >= 0 else 'red' for rew in results[0][2]])
         plt.xlabel('Feature\'s name')
@@ -191,8 +209,9 @@ class FeatureSelectorRL:
 
     def get_depth_of_visited_states(self):
         """
-            Plot the evolution of the size of the visited states in function of the iterations
+        Plot a graph of the number of times that a state of a certain size has been visited.
         """
+        
         sum_depth = []
         for key in self.feature_structure:
             #Browse every state with one size in the graph
@@ -207,12 +226,26 @@ class FeatureSelectorRL:
         plt.ylabel('Number of visits')
         plt.plot()
 
-    def compare_with_benchmark(self, X, y, results) -> list:
+    def compare_with_benchmark(self, X, y, results, estimator):
         """
-            Returns all the metrics at each iteration on the set of feature
-
-            Plots the graph of these evolutions
+        Compare the performance of FeatureSelectorRL with RFE from Sickit-Learn.
+        Return balanced accuracy score for classifiers and r2 score for regressors at each iteration 
+        and plot the graph of these evolutions.
+        
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+            Data vector, where `n_samples` is the number of samples and `n_features` is the number of features.
+            Same as the X passed to fit_predict.
+        y : array-like of shape (n_samples,)
+            Target values. Same as the y passed to fit_predict.
+        results : 2-object tuple
+            Results returned from fit_predict.
+        estimator : Classifier or Regressor Estimator
+            A supervised learning estimator with a ``fit`` method that provides information about feature importance 
+            (e.g. `coef_`, `feature_importances_`).
         """
+        
         is_better_list: list = []
         avg_benchmark_acccuracy: list = []
         avg_rl_acccuracy: list = []
@@ -226,23 +259,40 @@ class FeatureSelectorRL:
         print('---------- Score ----------')
         for i in range(1, self.feature_number):
             # From RL
-            clf = RandomForestClassifier(n_jobs=-1)
-
-            min_samples = np.min(np.array(y.value_counts()))
-            if min_samples < 5 and min_samples >= 2:
-                accuracy: float = np.mean(
-                    cross_val_score(clf, X.iloc[:, results[-1][i:]], y, cv=min_samples, scoring='balanced_accuracy'))
-            elif min_samples < 2:
-                accuracy: float = 0
+            if is_classifier(estimator):
+                min_samples = y.value_counts().min()
+                if min_samples >= 5:
+                    accuracy = np.mean(cross_val_score(estimator, X.iloc[:, results[-1][i:]], y, cv = 5, scoring = 'balanced_accuracy'))
+                elif min_samples < 5 and min_samples >= 2:
+                    accuracy = np.mean(cross_val_score(estimator, X.iloc[:, results[-1][i:]], y, cv = min_samples, scoring = 'balanced_accuracy'))
+                else:
+                    accuracy = 0
+            elif is_regressor(estimator):
+                num_samples = len(y)
+                if num_samples >= 10:
+                    accuracy = np.mean(cross_val_score(estimator, X.iloc[:, results[-1][i:]], y, cv = 5, scoring = 'r2'))
+                elif num_samples < 10 and num_samples >= 4:
+                    accuracy = np.mean(cross_val_score(estimator, X.iloc[:, results[-1][i:]], y, cv = num_samples // 2, scoring = 'r2'))
+                else:
+                    accuracy = 0
             else:
-                accuracy: float = np.mean(
-                    cross_val_score(clf, X.iloc[:, results[-1][i:]], y, cv=5, scoring='balanced_accuracy'))
-
+                raise TypeError("The provided estimator is neither a classifier nor a regressor. Please make sure to pass a classifier or regressor to the method.")
+            
+            if np.isnan(accuracy):
+                accuracy = 0
+            
             # Benchmark
-            estimator = RandomForestClassifier(n_jobs=-1)
             selector = RFE(estimator, n_features_to_select=len(results[-1]) - i, step=1)
-            cv_results = cross_validate(selector, X, y, cv=5, scoring='balanced_accuracy', return_estimator=True)
+            if is_classifier(estimator):
+                cv_results = cross_validate(selector, X, y, cv=5, scoring='balanced_accuracy', return_estimator=True)
+            elif is_regressor(estimator):
+                cv_results = cross_validate(selector, X, y, cv=5, scoring='r2', return_estimator=True)
+            else:
+                raise TypeError("The provided estimator is neither a classifier nor a regressor. Please make sure to pass a classifier or regressor to the method.")
+            
             sele_acc = np.mean(cv_results['test_score'])
+            if np.isnan(sele_acc):
+                sele_acc = 0
 
             if accuracy >= sele_acc:
                 is_better_list.append(1)
@@ -291,11 +341,20 @@ class FeatureSelectorRL:
 
         return is_better_list
 
-    def get_best_state(self) -> tuple[list[State | float], list[State | float]]:
+    def get_best_state(self):
         """
-            Returns the optimal state
-
-            Returns : Tuple(Best_rewarded_state, Best_feature_set)
+        Return the optimal state.
+        
+        Returns
+        ----------
+        state : tuple
+            2-object tuple:
+                List:
+                    Best state reward.
+                    Best reward. 
+                List:
+                    Best state v value.
+                    Best v value.
         """
 
         best_v_value: float = 0
