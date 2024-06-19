@@ -1,9 +1,9 @@
-# FSRLeaning - Python Library
+# FSRLearning - Python Library
 
 [![Downloads](https://static.pepy.tech/badge/FSRLearning)](https://pepy.tech/project/FSRLearning)
 [![Downloads](https://static.pepy.tech/badge/FSRLearning/month)](https://pepy.tech/project/FSRLearning)
 
-FSRLeaning is a Python library for feature selection using reinforcement learning. It's designed to be easy to use and efficient, particularly for selecting the most relevant features from a very large set.
+FSRLearning is a Python library for feature selection using reinforcement learning. It's designed to be easy to use and efficient, particularly for selecting the most relevant features from a very large set.
 
 ## Installation
 
@@ -31,52 +31,49 @@ import pandas as pd
 australian_data = pd.read_csv('australian_data.csv', header=None)
 
 # Get the dataset with the features
-X = australian_data.drop(14, axis=1)
+X = australian_data.drop(australian_data.columns[14], axis=1)
 
 # Get the dataset with the label values
-y = australian_data[14]
+y = australian_data[australian_data.columns[14]]
 ```
 
 After this step we can simply run a feature selection and ranking process that maximises a metric. 
 
 ```python
 from FSRLearning import FeatureSelectorRL
+from sklearn.ensemble import RandomForestClassifier
 
 # Create the object of feature selection with RL
-fsrl_obj = FeatureSelectorRL(14, nb_iter=200)
+fsrl_obj = FeatureSelectorRL(14, nb_iter = 200)
 
 # Returns the results of the selection and the ranking
-results = fsrl_obj.fit_predict(X, y)
+results = fsrl_obj.fit_predict(X, y, RandomForestClassifier(n_jobs = -1))
 results
 ```
 
-The feature_Selector_RL has several parameters that can be tuned. Here is all of them and the values that they can take.
-
+FeatureSelectorRL has several parameters that can be tuned:
 - feature_number (integer) : number of features in the DataFrame X
-
-- feature_structure (dictionary, optional) : dictionary for the graph implementation
 - eps (float [0; 1], optional) : probability of choosing a random next state, 0 is an only greedy algorithm and 1 only random
 - alpha (float [0; 1], optional): control the rate of updates, 0 is a very not updating state and 1 a very updated
 - gamma (float [0, 1], optional): factor of moderation of the observation of the next state, 0 is a shortsighted condition and 1 it exhibits farsighted behavior
 - nb_iter (int, optional): number of sequences to go through the graph
 - starting_state ("empty" or "random", optional) : if "empty" the algorithm starts from the empty state and if "random" the algorithm starts from a random state in the graph 
 
-The output of the selection process is a 5-tuple object.
-
-- Index of the features that have been sorted
-
-- Number of times that each feature has been chosen
-- Mean reward brought by each feature
-- Ranking of the features from the less important to the most important
-- Number of states visited
-
+The output of fit_predict is a 2-object tuple:
+- List:
+  - Index of the features that have been sorted.
+  - Number of times that each feature has been chosen.
+  - Mean reward brought by each feature.
+  - Ranking of the features from the less important to the most important.
+- Integer:
+  - Number of states visited.
 
 ## Existing methods
 
 - Compare the performance of the FSRLearning library with RFE from Sickit-Learn :
 
 ```python
-fsrl_obj.compare_with_benchmark(X, y, results)
+fsrl_obj.compare_with_benchmark(X, y, results, RandomForestClassifier(n_jobs = -1))
 ```
 Returns some comparisons and plot a graph with the metric for each set of features selected. It is useful for parameters tuning. 
 
@@ -90,7 +87,7 @@ Returns a plot. It is useful to get an overview of how the graph is browse and t
 - Get an overview of the relative impact of each feature on the model :
 
 ```python
-fsrl_obj.get_feature_strengh(results)
+fsrl_obj.get_feature_strength(results)
 ```
 
 Returns a bar plot.
@@ -114,4 +111,3 @@ Returns a plot. It is useful to see how deep the Markovian Decision Process goes
 This library has been implemented with the help of these two articles :
 - Sali Rasoul, Sodiq Adewole and Alphonse Akakpo, FEATURE SELECTION USING REINFORCEMENT LEARNING (2021)
 - Seyed Mehdin Hazrati Fard, Ali Hamzeh and Sattar Hashemi, USING REINFORCEMENT LEARNING TO FIND AN OPTIMAL SET OF FEATURES (2013)
-
