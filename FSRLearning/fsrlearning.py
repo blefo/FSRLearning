@@ -1,16 +1,15 @@
 from .state import State
 import numpy as np
 
-
 class FeatureSelectionProcess:
-    '''
+    """
         Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]]
 
         nb_of_features: Number of feature in the data set
         eps: probability of choosing a random action (uniform or softmax)
         alpha: 
         gamma: 
-    '''
+    """
 
     def __init__(self,
                  nb_of_features: int,
@@ -31,11 +30,12 @@ class FeatureSelectionProcess:
         self.feature_structure = feature_structure
 
     def pick_random_state(self) -> State:
-        '''
+        """
             Select a random state in all the possible state space
             
             Return a state randomly picked
-        '''
+        """
+        
         #Check if the dict is empty
         if bool(self.feature_structure) == True:
             random_depth: int = np.random.choice(list(self.feature_structure.keys()))
@@ -46,11 +46,12 @@ class FeatureSelectionProcess:
             return self.start_from_empty_set()
 
     def start_from_empty_set(self) -> State:
-        '''
+        """
             Start from the empty set (with no feature selected)
             
             Returns the empty initial state
-        '''
+        """
+        
         depth = 0
         if not bool(self.feature_structure):
             return State([0, 0], [], 0, 0.75), True
@@ -58,11 +59,12 @@ class FeatureSelectionProcess:
             return self.feature_structure[depth][0], True
 
     def add_to_historic(self, visited_state: State):
-        '''
+        """
             Add to the feature structure historic function
 
             visited_state: current state visited by the simulation
-        '''
+        """
+        
         state_depth: int = visited_state.number[0]
 
         #We increment the number of visit of the current state
@@ -93,14 +95,14 @@ class FeatureSelectionProcess:
             self.feature_structure[state_depth] = [visited_state]
 
     def get_final_aor_sorted(self) -> list:
-        '''
+        """
             Returns the aor table sorted by ascending
 
             Index of the feature
             Number of time the feature has been played
             Value of the feature
             Best feature (from the lowest to the biggest)
-        '''
+        """
 
         index: list = [i for i in range(self.nb_of_features)]
         nb_played: list = self.aor[0]
