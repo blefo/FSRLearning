@@ -13,7 +13,6 @@ from sklearn.feature_selection import RFE
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, cross_validate
 
-
 class FeatureSelectorRL:
     """
         This is the class used to create a feature selector with the RL method
@@ -228,18 +227,16 @@ class FeatureSelectorRL:
         for i in range(1, self.feature_number):
             # From RL
             clf = RandomForestClassifier(n_jobs=-1)
-            df = pd.concat([X.iloc[:, results[-1][i:]], y], axis=1)
-            df = df.drop_duplicates(ignore_index=True)
 
-            min_samples = np.min(np.array(df.iloc[:, -1].value_counts()))
+            min_samples = np.min(np.array(y.value_counts()))
             if min_samples < 5 and min_samples >= 2:
                 accuracy: float = np.mean(
-                    cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv=min_samples, scoring='balanced_accuracy'))
+                    cross_val_score(clf, X.iloc[:, results[-1][i:]], y, cv=min_samples, scoring='balanced_accuracy'))
             elif min_samples < 2:
                 accuracy: float = 0
             else:
                 accuracy: float = np.mean(
-                    cross_val_score(clf, df.iloc[:, :-1], df.iloc[:, -1], cv=5, scoring='balanced_accuracy'))
+                    cross_val_score(clf, X.iloc[:, results[-1][i:]], y, cv=5, scoring='balanced_accuracy'))
 
             # Benchmark
             estimator = RandomForestClassifier(n_jobs=-1)
