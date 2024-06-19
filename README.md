@@ -52,12 +52,12 @@ results
 ```
 
 FeatureSelectorRL has several parameters that can be tuned:
-- feature_number (integer) : number of features in the DataFrame X
-- eps (float [0; 1], optional) : probability of choosing a random next state, 0 is an only greedy algorithm and 1 only random
-- alpha (float [0; 1], optional): control the rate of updates, 0 is a very not updating state and 1 a very updated
-- gamma (float [0, 1], optional): factor of moderation of the observation of the next state, 0 is a shortsighted condition and 1 it exhibits farsighted behavior
-- nb_iter (int, optional): number of sequences to go through the graph
-- starting_state ("empty" or "random", optional) : if "empty" the algorithm starts from the empty state and if "random" the algorithm starts from a random state in the graph 
+- feature_number (integer) : Number of features.
+- eps (float [0, 1], default = 0.1) : Probability of choosing a random next state. 0 is an only greedy algorithm and 1 is an only random algorithm.
+- alpha (float [0, 1], default = 0.5) : Controls the rate of updates. 0 is a very not updating state and 1 is a very updating state.
+- gamma (float [0, 1], default = 0.7) : Discount factor to moderate the effect of observing the next state. 0 exhibits shortsighted behavior and 1 exhibits farsighted behavior.
+nb_iter (integer, default = 100) : Number of sequences to go through the graph.
+starting_state ({"empty", "random"}, default = "empty") : Starting state of the algorithm. 
 
 The output of fit_predict is a 2-object tuple:
 - List:
