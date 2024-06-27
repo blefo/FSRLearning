@@ -3,12 +3,12 @@ import numpy as np
 
 class FeatureSelectionProcess:
     """
-        Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]]
+    Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]].
 
-        nb_of_features: Number of feature in the data set
-        eps: probability of choosing a random action (uniform or softmax)
-        alpha: 
-        gamma: 
+    nb_of_features: Number of feature in the data set
+    eps: probability of choosing a random action (uniform or softmax)
+    alpha: Controls the rate of updates. 0 is a very not updating state and 1 is a very updating state
+    gamma: Discount factor to moderate the effect of observing the next state. 0 exhibits shortsighted behavior and 1 exhibits farsighted behavior
     """
 
     def __init__(self,
@@ -31,9 +31,9 @@ class FeatureSelectionProcess:
 
     def pick_random_state(self) -> State:
         """
-            Select a random state in all the possible state space
-            
-            Return a state randomly picked
+        Select a random state in all the possible state space.
+        
+        Return a state randomly picked.
         """
         
         #Check if the dict is empty
@@ -47,9 +47,9 @@ class FeatureSelectionProcess:
 
     def start_from_empty_set(self) -> State:
         """
-            Start from the empty set (with no feature selected)
-            
-            Returns the empty initial state
+        Start from the empty set (with no feature selected).
+        
+        Returns the empty initial state.
         """
         
         depth = 0
@@ -60,9 +60,9 @@ class FeatureSelectionProcess:
 
     def add_to_historic(self, visited_state: State):
         """
-            Add to the feature structure historic function
+        Add to the feature structure historic function.
 
-            visited_state: current state visited by the simulation
+        visited_state: current state visited by the simulation
         """
         
         state_depth: int = visited_state.number[0]
@@ -96,12 +96,12 @@ class FeatureSelectionProcess:
 
     def get_final_aor_sorted(self) -> list:
         """
-            Returns the aor table sorted by ascending
+        Returns the aor table sorted by ascending:
 
-            Index of the feature
-            Number of time the feature has been played
-            Value of the feature
-            Best feature (from the lowest to the biggest)
+        Index of the feature
+        Number of time the feature has been played
+        Value of the feature
+        Best feature (from the lowest to the biggest)
         """
 
         index: list = [i for i in range(self.nb_of_features)]
