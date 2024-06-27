@@ -1,6 +1,6 @@
 class Action:
     """
-        Action Object
+    Action Object.
     """
     
     def __init__(self,
@@ -11,11 +11,11 @@ class Action:
 
     def get_aorf(self, aor_historic: list) -> list:
         """
-        Update the ARO of a feature
+        Update the ARO of a feature.
 
-        aor_historic: get the not updated aor table
+        aor_historic: get the not updated aor table.
 
-        Return the AOR table
+        Return the AOR table.
         """
         
         # Get the feature played and information about it
