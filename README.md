@@ -70,7 +70,7 @@ The output of fit_predict is a 2-object tuple:
 
 ## Methods
 
-- Compare the performance of the FSRLearning library with RFECV from Scikit-Learn:
+- Compare the performance of the FSRLearning library with RFE from Scikit-Learn:
 
 ```python
 fsrl_obj.compare_with_benchmark(X, y, results, RandomForestClassifier(n_jobs = -1))
