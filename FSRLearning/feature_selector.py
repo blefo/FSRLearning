@@ -1,5 +1,3 @@
-from typing import Tuple, List
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,7 +8,6 @@ from .state import State
 from .fsrlearning import FeatureSelectionProcess
 
 from sklearn.feature_selection import RFE
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score, cross_validate
 from sklearn.base import is_classifier, is_regressor
 
@@ -228,7 +225,7 @@ class FeatureSelectorRL:
 
     def compare_with_benchmark(self, X, y, results, estimator):
         """
-        Compare the performance of FeatureSelectorRL with RFE from Sickit-Learn.
+        Compare the performance of FeatureSelectorRL with RFE from Scikit-Learn.
         Return balanced accuracy score for classifiers and r2 score for regressors at each iteration 
         and plot the graph of these evolutions.
         
