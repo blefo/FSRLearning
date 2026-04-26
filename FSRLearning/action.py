@@ -1,31 +1,37 @@
+from __future__ import annotations
+
+import numpy as np
+
+
 class Action:
-    '''
-        Action Object
-    '''
-    def __init__(self,
-                 state_t,
-                 state_next) -> None:
+    """
+    Transition from state_t to state_next by adding one feature.
+    """
+
+    def __init__(self, state_t, state_next) -> None:
         self.state_t = state_t
-        self.state_next = state_next            
+        self.state_next = state_next
 
-    def get_aorf(self, aor_historic: list) -> list:
-        '''
-        Update the ARO of a feature
+    def get_aorf(self, aor_historic: list, reward_delta: float | None = None) -> list:
+        """
+        Incrementally update the AOR score for the selected feature.
 
-        aor_historic: get the not updated aor table
+        AOR_f(k) = ((k - 1) * AOR_f(k-1) + reward_delta) / k
+        """
+        chosen_feature = list(set(self.state_next.description) - set(self.state_t.description))[0]
 
-        Return the AOR table
-        '''
-        # Get the feature played and information about it
-        chosen_feature: int = list(set(self.state_next.description)-set(self.state_t.description))[0]
+        counts = np.array(aor_historic[0], copy=True)
+        values = np.array(aor_historic[1], copy=True)
 
-        nb_played: int = aor_historic[0][chosen_feature] + 1    
-        aorf_value: float = aor_historic[1][chosen_feature]
+        if reward_delta is None:
+            reward_t = 0.0 if self.state_t.reward is None else float(self.state_t.reward)
+            reward_next = 0.0 if self.state_next.reward is None else float(self.state_next.reward)
+            reward_delta = reward_next - reward_t
 
-        aor_new = aor_historic.copy()
+        k = int(counts[chosen_feature]) + 1
+        prev_aor = float(values[chosen_feature])
 
-        # Update the value
-        aor_new[0][chosen_feature] = nb_played
-        aor_new[1][chosen_feature] = ((nb_played-1) * aorf_value + self.state_t.v_value) / nb_played
+        counts[chosen_feature] = k
+        values[chosen_feature] = ((k - 1) * prev_aor + float(reward_delta)) / k
 
-        return aor_new
+        return [counts, values]

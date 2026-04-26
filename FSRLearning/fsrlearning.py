@@ -1,111 +1,121 @@
-from .state import State
+from __future__ import annotations
+
+from collections import defaultdict
 import numpy as np
+
+from .state import State
 
 
 class FeatureSelectionProcess:
-    '''
-        Init aor list such that aor = [[np.zeros(nb_of_features)], [np.zeros(nb_of_features)]]
+    """
+    Holds graph memory for the feature-selection RL process.
+    """
 
-        nb_of_features: Number of feature in the data set
-        eps: probability of choosing a random action (uniform or softmax)
-        alpha: 
-        gamma: 
-    '''
-
-    def __init__(self,
-                 nb_of_features: int,
-                 eps: float,
-                 alpha: float,
-                 gamma: float,
-                 aor: list,
-                 feature_structure: dict) -> None:
+    def __init__(
+        self,
+        nb_of_features: int,
+        eps: float,
+        alpha: float,
+        gamma: float,
+        aor: list,
+        feature_structure: dict,
+        random_state: int | None = None,
+    ) -> None:
         self.nb_of_features = nb_of_features
         self.eps = eps
         self.alpha = alpha
         self.gamma = gamma
 
-        #Memory of AORf [[nb f is selected], [AOR value]]
         self.aor = aor
-
-        #Init the state structure
         self.feature_structure = feature_structure
 
-    def pick_random_state(self) -> State:
-        '''
-            Select a random state in all the possible state space
-            
-            Return a state randomly picked
-        '''
-        #Check if the dict is empty
-        if bool(self.feature_structure) == True:
-            random_depth: int = np.random.choice(list(self.feature_structure.keys()))
-            random_state: State = np.random.choice(self.feature_structure[random_depth])
+        self.rng = np.random.default_rng(random_state)
 
-            return random_state, False
-        else:
+        self._state_map: dict[frozenset, State] = {}
+        self._depth_index: defaultdict[int, int] = defaultdict(int)
+
+        # Per-state action repository used by exploit phases
+        # key: state_key -> {feature_idx -> {'count': int, 'mean': float}}
+        self.state_action_repository: dict[frozenset, dict[int, dict[str, float]]] = {}
+
+        # Create and register the empty state at depth 0.
+        empty_state = State([0, 0], [], 0.0, 0.0, 0)
+        self._register_state(empty_state)
+
+    def _register_state(self, state: State) -> State:
+        key = state.key
+        if key in self._state_map:
+            return self._state_map[key]
+
+        depth = len(state.description)
+        state.number = [depth, self._depth_index[depth]]
+        self._depth_index[depth] += 1
+
+        self._state_map[key] = state
+        if depth not in self.feature_structure:
+            self.feature_structure[depth] = []
+        self.feature_structure[depth].append(state)
+        self.state_action_repository[key] = {}
+        return state
+
+    def get_or_create_state(self, description: list[int]) -> State:
+        key = frozenset(description)
+        if key in self._state_map:
+            return self._state_map[key]
+
+        new_state = State([len(description), 0], sorted(description), 0.0, None, 0)
+        return self._register_state(new_state)
+
+    def pick_random_state(self) -> tuple[State, bool]:
+        """
+        Sample an episode start state from the full state space (excluding terminal state).
+        """
+        if self.nb_of_features <= 1:
             return self.start_from_empty_set()
 
-    def start_from_empty_set(self) -> State:
-        '''
-            Start from the empty set (with no feature selected)
-            
-            Returns the empty initial state
-        '''
-        depth = 0
-        if not bool(self.feature_structure):
-            return State([0, 0], [], 0, 0.75), True
-        else:
-            return self.feature_structure[depth][0], True
+        k = int(self.rng.integers(0, self.nb_of_features))
+        if k == 0:
+            return self.start_from_empty_set()
 
-    def add_to_historic(self, visited_state: State):
-        '''
-            Add to the feature structure historic function
+        sampled = self.rng.choice(np.arange(self.nb_of_features), size=k, replace=False)
+        random_state = self.get_or_create_state(sampled.tolist())
+        return random_state, False
 
-            visited_state: current state visited by the simulation
-        '''
-        state_depth: int = visited_state.number[0]
+    def start_from_empty_set(self) -> tuple[State, bool]:
+        return self.get_or_create_state([]), True
 
-        #We increment the number of visit of the current state
-        if visited_state.description != []:
-            visited_state.nb_visited += 1
+    def add_to_historic(self, visited_state: State) -> None:
+        """
+        Increment visit count and keep state in the graph index.
+        """
+        registered = self.get_or_create_state(visited_state.description)
+        registered.nb_visited += 1
 
-        if state_depth in self.feature_structure:
-            #If there is a key associated to the state depth
-            is_already_existing: list = [
-                state_searching for state_searching in self.feature_structure[state_depth]
-                if visited_state.is_equal(state_searching)
-            ]
+        # Keep runtime-updated values synchronized into the canonical object.
+        registered.v_value = visited_state.v_value
+        registered.reward = visited_state.reward
 
-            if not is_already_existing:
-                #If the state is not already registered
-                self.feature_structure[state_depth].append(visited_state)
-            else:
-                #The state already exists
-                #We remove the existing state and replace it by the new one
-                self.feature_structure[state_depth].remove([
-                                                               state_rem for state_rem in
-                                                               self.feature_structure[state_depth]
-                                                               if visited_state.is_equal(state_rem)
-                                                           ][0])
-                self.feature_structure[state_depth].append(visited_state)
-        else:
-            #The layer does not exist, we can simply add it
-            self.feature_structure[state_depth] = [visited_state]
+    def get_available_features(self, state: State) -> list[int]:
+        selected = set(state.description)
+        return [f for f in range(self.nb_of_features) if f not in selected]
+
+    def update_state_action_repository(self, state: State, feature: int, reward_delta: float) -> None:
+        repo = self.state_action_repository[state.key]
+        if feature not in repo:
+            repo[feature] = {"count": 1, "mean": float(reward_delta)}
+            return
+
+        prev_count = int(repo[feature]["count"])
+        prev_mean = float(repo[feature]["mean"])
+        new_count = prev_count + 1
+        new_mean = ((prev_count * prev_mean) + float(reward_delta)) / new_count
+        repo[feature]["count"] = new_count
+        repo[feature]["mean"] = new_mean
 
     def get_final_aor_sorted(self) -> list:
-        '''
-            Returns the aor table sorted by ascending
+        index = np.arange(self.nb_of_features)
+        nb_played = np.array(self.aor[0], copy=True)
+        values = np.array(self.aor[1], copy=True)
 
-            Index of the feature
-            Number of time the feature has been played
-            Value of the feature
-            Best feature (from the lowest to the biggest)
-        '''
-
-        index: list = [i for i in range(self.nb_of_features)]
-        nb_played: list = self.aor[0]
-        values: list = self.aor[1]
-
-        index, values = zip(*sorted(zip(index, values)))
-
-        return [index, nb_played, values, np.argsort(self.aor[1])]
+        sorted_idx = np.argsort(values)
+        return [tuple(index.tolist()), nb_played, tuple(values.tolist()), sorted_idx]
